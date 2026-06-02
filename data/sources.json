@@ -1,3 +1,209 @@
 {
-  "sources": []
+  "metadata": {
+    "total": 20,
+    "last_updated": "2026-06-02",
+    "description": "Sources surveillées par AfroTech Pulse"
+  },
+  "sources": [
+    {
+      "id": "arxiv-cs-ai",
+      "name": "arXiv cs.AI / cs.CL",
+      "category": "Recherche IA",
+      "type": "rss",
+      "url": "https://arxiv.org/rss/cs.AI",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "huggingface-papers",
+      "name": "Hugging Face Papers",
+      "category": "Recherche IA",
+      "type": "rss",
+      "url": "https://huggingface.co/papers",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "masakhane-research",
+      "name": "Masakhane Research",
+      "category": "Recherche IA",
+      "type": "web",
+      "url": "https://masakhane.io",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "deep-learning-indaba",
+      "name": "Deep Learning Indaba",
+      "category": "Recherche IA",
+      "type": "web",
+      "url": "https://deeplearningindaba.com",
+      "frequency": "mensuel",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "techpoint-africa",
+      "name": "Techpoint Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://techpoint.africa/feed",
+      "frequency": "quotidien",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "disrupt-africa",
+      "name": "Disrupt Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://disruptafrica.com/feed",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "africa-tech-summit",
+      "name": "Africa Tech Summit",
+      "category": "Tech Afrique",
+      "type": "web",
+      "url": "https://africatechsummit.com",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "partech-africa",
+      "name": "Partech Africa",
+      "category": "Tech Afrique",
+      "type": "web",
+      "url": "https://partechpartners.com",
+      "frequency": "mensuel",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "gsma-mobile-economy",
+      "name": "GSMA Mobile Economy Africa",
+      "category": "Fintech",
+      "type": "pdf",
+      "url": "https://gsma.com/africa",
+      "frequency": "trimestriel",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "crunchbase-africa",
+      "name": "Crunchbase Africa filter",
+      "category": "Startups",
+      "type": "api",
+      "url": "https://crunchbase.com",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "ycombinator-africa",
+      "name": "Y Combinator Africa alumni",
+      "category": "Startups",
+      "type": "web",
+      "url": "https://ycombinator.com",
+      "frequency": "variable",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "mit-tech-review",
+      "name": "MIT Technology Review Africa",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://technologyreview.com",
+      "frequency": "quotidien",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "wired-africa",
+      "name": "Wired Africa tags",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://wired.com",
+      "frequency": "quotidien",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "african-union-ai",
+      "name": "Union Africaine AI policy",
+      "category": "Institutions",
+      "type": "web",
+      "url": "https://au.int",
+      "frequency": "variable",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "world-bank-africa",
+      "name": "Banque Mondiale digital africa",
+      "category": "Institutions",
+      "type": "pdf",
+      "url": "https://worldbank.org",
+      "frequency": "mensuel",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "twitter-ai-africa",
+      "name": "Twitter/X #AIAfrica #TechAfrica",
+      "category": "Social",
+      "type": "api",
+      "url": "https://developer.twitter.com",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "linkedin-ytilikan",
+      "name": "LinkedIn Y'TILIKAN network",
+      "category": "Social",
+      "type": "api",
+      "url": "https://linkedin.com",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "ytilikan-podcast",
+      "name": "Y'TILIKAN Podcast",
+      "category": "Podcasts",
+      "type": "rss",
+      "url": "",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": false
+    },
+    {
+      "id": "the-flip-africa",
+      "name": "The Flip Africa",
+      "category": "Podcasts",
+      "type": "rss",
+      "url": "https://theflip.africa",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "mckinsey-africa",
+      "name": "McKinsey Global Institute Africa",
+      "category": "Rapports",
+      "type": "pdf",
+      "url": "https://mckinsey.com",
+      "frequency": "variable",
+      "relevance": "haute",
+      "active": true
+    }
+  ]
 }
