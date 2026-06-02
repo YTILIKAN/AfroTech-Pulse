@@ -1,0 +1,9 @@
+feedparser
+requests
+beautifulsoup4
+sentence-transformers
+mistralai
+streamlit
+plotly
+python-dotenv
+whoosh
