@@ -35,6 +35,7 @@
       "relevance": "tres_haute",
       "active": true
     },
+    
     {
       "id": "deep-learning-indaba",
       "name": "Deep Learning Indaba",
@@ -202,6 +203,306 @@
       "type": "pdf",
       "url": "https://mckinsey.com",
       "frequency": "variable",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "lelapa-ai-blog",
+      "name": "Lelapa AI Lab",
+      "category": "Recherche IA",
+      "type": "web",
+      "url": "https://lelapa.ai",
+      "frequency": "mensuel",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "instadeep-insights",
+      "name": "InstaDeep Tech Insights",
+      "category": "Recherche IA",
+      "type": "web",
+      "url": "https://www.instadeep.com/blog",
+      "frequency": "mensuel",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "jair-africa",
+      "name": "Journal of Artificial Intelligence Research - Africa tags",
+      "category": "Recherche IA",
+      "type": "web",
+      "url": "https://www.jair.org",
+      "frequency": "variable",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "data-science-nigeria",
+      "name": "Data Science Nigeria (DSN)",
+      "category": "Recherche IA",
+      "type": "web",
+      "url": "https://www.datasciencenigeria.ai",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "cio-africa",
+      "name": "CIO Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://cioafrica.co/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "ventureburn",
+      "name": "Ventureburn",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://ventureburn.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "wee-tracker",
+      "name": "WeeTracker",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://weetracker.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "agence-ecofin-tech",
+      "name": "Agence Ecofin - Telecom & Tech",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://www.agenceecofin.com/telecom/rss",
+      "frequency": "quotidien",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "itnewsafrica",
+      "name": "IT News Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://www.itnewsafrica.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "digital-business-africa",
+      "name": "Digital Business Africa",
+      "category": "Tech Afrique",
+      "type": "web",
+      "url": "https://www.digitalbusiness.africa",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "rest-of-world-africa",
+      "name": "Rest of World - Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://restofworld.org/feed",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "digest-africa",
+      "name": "Digest Africa",
+      "category": "Startups",
+      "type": "web",
+      "url": "https://digestafrica.com",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "briter-bridges",
+      "name": "Briter Bridges Intelligence",
+      "category": "Startups",
+      "type": "web",
+      "url": "https://briterbridges.com",
+      "frequency": "mensuel",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "the-baobab-network",
+      "name": "The Baobab Network Insights",
+      "category": "Startups",
+      "type": "web",
+      "url": "https://thebaobabnetwork.com",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "timbuktoo-un",
+      "name": "timbuktoo Initiative (PNUD)",
+      "category": "Startups",
+      "type": "web",
+      "url": "https://timbuktoo.africa",
+      "frequency": "variable",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "tech-cabal",
+      "name": "TechCabal",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://techcabal.com/feed",
+      "frequency": "quotidien",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "ft-africa",
+      "name": "Financial Times - Africa Tech",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.ft.com/world/africa",
+      "frequency": "hebdo",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "jeune-afrique-tech",
+      "name": "Jeune Afrique - Économie Numérique",
+      "category": "Grands médias",
+      "type": "web",
+      "url": "https://www.jeuneafrique.com/sections/economie/entreprises/telecoms-hightech",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "le-point-afrique",
+      "name": "Le Point Afrique - Tech",
+      "category": "Grands médias",
+      "type": "web",
+      "url": "https://www.lepoint.fr/afrique/technologie",
+      "frequency": "hebdo",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "un-eca",
+      "name": "Commission économique pour l'Afrique (CEA)",
+      "category": "Institutions",
+      "type": "web",
+      "url": "https://www.uneca.org",
+      "frequency": "variable",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "smart-africa",
+      "name": "Smart Africa Secretariat",
+      "category": "Institutions",
+      "type": "web",
+      "url": "https://smartafrica.org",
+      "frequency": "mensuel",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "cipesa-policy",
+      "name": "CIPESA - ICT Policy Africa",
+      "category": "Institutions",
+      "type": "rss",
+      "url": "https://cipesa.org/feed",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "afri-noli",
+      "name": "African Observatory on AI",
+      "category": "Institutions",
+      "type": "web",
+      "url": "https://africanobservatory.ai",
+      "frequency": "mensuel",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "africatech-pod",
+      "name": "Africa Tech Podcast",
+      "category": "Podcasts",
+      "type": "rss",
+      "url": "https://africatechpodcast.com/feed",
+      "frequency": "mensuel",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "tech-in-africa",
+      "name": "Tech in Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://www.techinafrica.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "ia-afrique-linkedin",
+      "name": "LinkedIn Group #ArtificialIntelligenceAfrica",
+      "category": "Social",
+      "type": "api",
+      "url": "https://linkedin.com",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "ifc-africa-reports",
+      "name": "IFC Digital Africa (Société Financière Internationale)",
+      "category": "Rapports",
+      "type": "pdf",
+      "url": "https://www.ifc.org",
+      "frequency": "variable",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "kasi-insights",
+      "name": "Kasi Insight Data",
+      "category": "Rapports",
+      "type": "web",
+      "url": "https://www.kasiinsight.com",
+      "frequency": "mensuel",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "stars-from-africa",
+      "name": "Stars From Africa Ecosystem",
+      "category": "Startups",
+      "type": "web",
+      "url": "https://starsfromafrica.com",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "africain-it",
+      "name": "Africain.it",
+      "category": "Tech Afrique",
+      "type": "web",
+      "url": "https://africain.it",
+      "frequency": "hebdo",
       "relevance": "haute",
       "active": true
     }
