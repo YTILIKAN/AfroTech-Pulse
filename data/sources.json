@@ -121,7 +121,7 @@
       "name": "MIT Technology Review Africa",
       "category": "Grands médias",
       "type": "rss",
-      "url": "https://technologyreview.com",
+      "url": "https://technologyreview.com/feed",
       "frequency": "quotidien",
       "relevance": "moyenne",
       "active": true
@@ -131,7 +131,7 @@
       "name": "Wired Africa tags",
       "category": "Grands médias",
       "type": "rss",
-      "url": "https://wired.com",
+      "url": "https://wired.com/feed/rss",
       "frequency": "quotidien",
       "relevance": "moyenne",
       "active": true
@@ -191,7 +191,7 @@
       "name": "The Flip Africa",
       "category": "Podcasts",
       "type": "rss",
-      "url": "https://theflip.africa",
+      "url": "https://theflip.africa/feed",
       "frequency": "hebdo",
       "relevance": "haute",
       "active": true
