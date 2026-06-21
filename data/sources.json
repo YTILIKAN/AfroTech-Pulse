@@ -19,11 +19,11 @@
       "id": "huggingface-papers",
       "name": "Hugging Face Papers",
       "category": "Recherche IA",
-      "type": "rss",
+      "type": "web",
       "url": "https://huggingface.co/papers",
       "frequency": "quotidien",
       "relevance": "haute",
-      "active": true
+      "active": false
     },
     {
       "id": "masakhane-research",
@@ -121,7 +121,7 @@
       "name": "MIT Technology Review Africa",
       "category": "Grands médias",
       "type": "rss",
-      "url": "https://technologyreview.com",
+      "url": "https://technologyreview.com/feed",
       "frequency": "quotidien",
       "relevance": "moyenne",
       "active": true
@@ -131,7 +131,7 @@
       "name": "Wired Africa tags",
       "category": "Grands médias",
       "type": "rss",
-      "url": "https://wired.com",
+      "url": "https://wired.com/feed/rss",
       "frequency": "quotidien",
       "relevance": "moyenne",
       "active": true
@@ -191,10 +191,10 @@
       "name": "The Flip Africa",
       "category": "Podcasts",
       "type": "rss",
-      "url": "https://theflip.africa",
+      "url": "https://theflip.africa/feed",
       "frequency": "hebdo",
       "relevance": "haute",
-      "active": true
+      "active": false
     },
     {
       "id": "mckinsey-africa",
@@ -281,7 +281,7 @@
       "name": "Agence Ecofin - Telecom & Tech",
       "category": "Tech Afrique",
       "type": "rss",
-      "url": "https://www.agenceecofin.com/telecom/rss",
+      "url": "https://www.agenceecofin.com/feed",
       "frequency": "quotidien",
       "relevance": "tres_haute",
       "active": true
@@ -374,7 +374,7 @@
       "url": "https://www.ft.com/world/africa",
       "frequency": "hebdo",
       "relevance": "moyenne",
-      "active": true
+      "active": false
     },
     {
       "id": "jeune-afrique-tech",
@@ -444,7 +444,7 @@
       "url": "https://africatechpodcast.com/feed",
       "frequency": "mensuel",
       "relevance": "haute",
-      "active": true
+      "active": false
     },
     {
       "id": "tech-in-africa",
