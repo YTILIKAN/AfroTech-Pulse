@@ -60,7 +60,6 @@ def _run_tests():
     try:
         creer_base()
 
-        # Test 1 : insérer un article et vérifier qu'il est en base
         sauvegarder_article(
             titre="IA révolutionne l'agriculture au Kenya",
             url="https://exemple.com/article-1",
@@ -79,7 +78,6 @@ def _run_tests():
         assert row[0] == "IA révolutionne l'agriculture au Kenya", "Test 1 ECHOUE : titre incorrect"
         print("Test 1 OK — article inséré et retrouvé en base")
 
-        # Test 2 : article_existe() fonctionne
         assert article_existe("https://exemple.com/article-1"), \
             "Test 2 ECHOUE : article_existe() devrait retourner True"
         assert not article_existe("https://exemple.com/inexistant"), \
