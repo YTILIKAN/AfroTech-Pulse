@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "total": 20,
-    "last_updated": "2026-06-02",
+    "total": 70,
+    "last_updated": "2026-06-26",
     "description": "Sources surveillées par AfroTech Pulse"
   },
   "sources": [
@@ -504,6 +504,207 @@
       "url": "https://africain.it",
       "frequency": "hebdo",
       "relevance": "haute",
+      "active": true
+    },
+
+    {
+      "id": "techweez",
+      "name": "Techweez",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://techweez.com/feed",
+      "frequency": "quotidien",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "dignited",
+      "name": "Dignited",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://dignited.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "techzim",
+      "name": "Techzim",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://www.techzim.co.zw/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "humanipo",
+      "name": "HumanIPO",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://humanipo.com/feed",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "how-we-made-it",
+      "name": "How We Made It In Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://www.howwemadeitinafrica.com/feed",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "quartz-africa",
+      "name": "Quartz Africa",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://qz.com/africa/rss",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "africa-report",
+      "name": "The Africa Report",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.theafricareport.com/feed",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "nairametrics",
+      "name": "Nairametrics Tech",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://nairametrics.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "businessday-ng",
+      "name": "BusinessDay Nigeria",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://businessday.ng/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "african-business-mag",
+      "name": "African Business Magazine",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://african.business/feed",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "pc-tech-mag",
+      "name": "PC Tech Magazine",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://pctechmag.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "gsma-newsroom",
+      "name": "GSMA Newsroom",
+      "category": "Institutions",
+      "type": "rss",
+      "url": "https://www.gsma.com/newsroom/feed/",
+      "frequency": "mensuel",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "google-africa-blog",
+      "name": "Google Africa Blog",
+      "category": "Recherche IA",
+      "type": "rss",
+      "url": "https://blog.google/around-the-globe/google-africa/rss/",
+      "frequency": "variable",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "brookings-africa",
+      "name": "Brookings Africa Research",
+      "category": "Institutions",
+      "type": "rss",
+      "url": "https://www.brookings.edu/topic/africa/feed/",
+      "frequency": "mensuel",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "medium-ai-africa",
+      "name": "Medium — IA en Afrique",
+      "category": "Recherche IA",
+      "type": "rss",
+      "url": "https://medium.com/feed/tag/artificial-intelligence-africa",
+      "frequency": "variable",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "the-exchange-africa",
+      "name": "The Exchange Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://theexchange.africa/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "kenyan-wallstreet",
+      "name": "Kenyan Wall Street",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://kenyanwallstreet.com/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "connecting-africa",
+      "name": "Connecting Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://www.connectingafrica.com/rss.xml",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "stears-business",
+      "name": "Stears Business",
+      "category": "Startups",
+      "type": "rss",
+      "url": "https://www.stears.co/feed/",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "cgtn-africa",
+      "name": "CGTN Africa",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://africa.cgtn.com/feed/",
+      "frequency": "quotidien",
+      "relevance": "moyenne",
       "active": true
     }
   ]
