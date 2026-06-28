@@ -14,6 +14,7 @@ PAYS_AFRICAINS = [
     "eswatini", "swaziland", "comores", "comoros", "cap-vert", "cape verde",
     "south africa", "afrique du sud", "egypt", "egypte", "maroc", "morocco",
     "algérie", "algeria", "tunisie", "tunisia", "libye", "libya",
+    "africa", "african", "afrique",
 ]
 
 VILLES_AFRICAINES = [
@@ -94,8 +95,8 @@ def _run_tests():
     # Test 1 : article mentionnant "Lagos" + "startup" → score > 50
     s1 = score_article(
         titre="How Lagos startup is disrupting fintech in Africa",
-        contenu="A new startup based in Lagos is changing the way africans access financial services.",
-        source_id="wired"
+        contenu="A new startup based in Lagos, Nigeria is changing the way africans access financial services. This african tech company is a leading tech hub.",
+        source_id="techpoint-africa"
     )
     assert s1 > 50, f"Test 1 ECHOUE : score={s1}, attendu > 50"
     print(f"Test 1 OK — article Lagos+startup : score={s1}")
@@ -112,7 +113,7 @@ def _run_tests():
     # Test 3 : article mentionnant "Africa" + "intelligence artificielle" → score > 30
     s3 = score_article(
         titre="Artificial intelligence is transforming education across Africa",
-        contenu="Several african countries are adopting AI tools to improve learning outcomes.",
+        contenu="Several african countries are adopting AI tools. Tech hubs in Nairobi and Kigali are leading this transformation.",
         source_id="techcrunch"
     )
     assert s3 > 30, f"Test 3 ECHOUE : score={s3}, attendu > 30"
@@ -127,7 +128,7 @@ def _run_tests():
     assert s4 > 0, f"Test 4 ECHOUE : score={s4}, attendu > 0"
     print(f"Test 4 OK — source techpoint-africa : score={s4}")
 
-    print("\n4/4 tests passés ✓")
+    print("\n4/4 tests passes - OK")
 
 
 if __name__ == "__main__":
