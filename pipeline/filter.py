@@ -87,3 +87,51 @@ def score_article(titre: str, contenu: str, source_id: str) -> int:
             break
 
     return min(score, 100)
+ 
+
+
+def _run_tests():
+    # Test 1 : article mentionnant "Lagos" + "startup" → score > 50
+    s1 = score_article(
+        titre="How Lagos startup is disrupting fintech in Africa",
+        contenu="A new startup based in Lagos is changing the way africans access financial services.",
+        source_id="wired"
+    )
+    assert s1 > 50, f"Test 1 ECHOUE : score={s1}, attendu > 50"
+    print(f"Test 1 OK — article Lagos+startup : score={s1}")
+
+    # Test 2 : article sur Apple en Californie → score == 0
+    s2 = score_article(
+        titre="Apple launches new iPhone in California",
+        contenu="Apple held its annual keynote in Cupertino, announcing the latest iPhone model.",
+        source_id="wired"
+    )
+    assert s2 == 0, f"Test 2 ECHOUE : score={s2}, attendu == 0"
+    print(f"Test 2 OK — article Apple California : score={s2}")
+
+    # Test 3 : article mentionnant "Africa" + "intelligence artificielle" → score > 30
+    s3 = score_article(
+        titre="Artificial intelligence is transforming education across Africa",
+        contenu="Several african countries are adopting AI tools to improve learning outcomes.",
+        source_id="techcrunch"
+    )
+    assert s3 > 30, f"Test 3 ECHOUE : score={s3}, attendu > 30"
+    print(f"Test 3 OK — article Africa+IA : score={s3}")
+
+    # Test 4 : article provenant de techpoint-africa → score > 0 (bonus source)
+    s4 = score_article(
+        titre="New developer tools released this week",
+        contenu="Several new tools were announced for software developers.",
+        source_id="techpoint-africa"
+    )
+    assert s4 > 0, f"Test 4 ECHOUE : score={s4}, attendu > 0"
+    print(f"Test 4 OK — source techpoint-africa : score={s4}")
+
+    print("\n4/4 tests passés ✓")
+
+
+if __name__ == "__main__":
+    _run_tests()
+
+
+ 
