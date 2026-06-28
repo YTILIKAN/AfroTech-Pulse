@@ -1,4 +1,5 @@
 # pipeline/filter.py — Filtrage de pertinence africaine (scoring keywords + embeddings)
+
 # pipeline/filter.py
 
 PAYS_AFRICAINS = [
@@ -49,3 +50,40 @@ SOURCES_AFRICAINES = [
     "benjamindada", "africanews", "ventures-africa", "itnewsafrica",
     "technext", "techeconomy", "nairobiwire", "bdafrica",
 ]
+
+
+def score_article(titre: str, contenu: str, source_id: str) -> int:
+    texte = (titre + " " + contenu).lower()
+    score = 0
+
+    # +20 si au moins un pays africain est mentionné
+    for pays in PAYS_AFRICAINS:
+        if pays in texte:
+            score += 20
+            break
+
+    # +15 si au moins une ville africaine est mentionnée
+    for ville in VILLES_AFRICAINES:
+        if ville in texte:
+            score += 15
+            break
+
+    # +15 si au moins une organisation africaine est mentionnée
+    for org in ORGANISATIONS_AFRICAINES:
+        if org in texte:
+            score += 15
+            break
+
+    # +10 si au moins un terme tech africain est mentionné
+    for terme in TERMES_TECH_AFRICAINS:
+        if terme in texte:
+            score += 10
+            break
+
+    # +10 bonus si la source est africaine
+    for src in SOURCES_AFRICAINES:
+        if src in source_id.lower():
+            score += 10
+            break
+
+    return min(score, 100)
