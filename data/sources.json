@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "total": 70,
-    "last_updated": "2026-06-26",
-    "description": "Sources surveillées par AfroTech Pulse"
+    "total": 34,
+    "last_updated": "2026-06-30 (v3)",
+    "description": "Sources RSS actives surveillées par AfroTech Pulse (type: rss + active: true)"
   },
   "sources": [
     {
@@ -35,7 +35,7 @@
       "relevance": "tres_haute",
       "active": true
     },
-    
+
     {
       "id": "deep-learning-indaba",
       "name": "Deep Learning Indaba",
@@ -508,31 +508,31 @@
     },
 
     {
-      "id": "techweez",
-      "name": "Techweez",
-      "category": "Tech Afrique",
+      "id": "dw-africa",
+      "name": "DW Africa (Deutsche Welle)",
+      "category": "Grands médias",
       "type": "rss",
-      "url": "https://techweez.com/feed",
-      "frequency": "quotidien",
-      "relevance": "tres_haute",
-      "active": true
-    },
-    {
-      "id": "dignited",
-      "name": "Dignited",
-      "category": "Tech Afrique",
-      "type": "rss",
-      "url": "https://dignited.com/feed",
+      "url": "https://rss.dw.com/rdf/rss-en-africa",
       "frequency": "quotidien",
       "relevance": "haute",
       "active": true
     },
     {
-      "id": "techzim",
-      "name": "Techzim",
+      "id": "vanguard-ng",
+      "name": "Vanguard Nigeria",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.vanguardngr.com/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "techcentral-sa",
+      "name": "TechCentral South Africa",
       "category": "Tech Afrique",
       "type": "rss",
-      "url": "https://www.techzim.co.zw/feed",
+      "url": "https://techcentral.co.za/feed/",
       "frequency": "quotidien",
       "relevance": "haute",
       "active": true
@@ -558,13 +558,13 @@
       "active": true
     },
     {
-      "id": "quartz-africa",
-      "name": "Quartz Africa",
-      "category": "Grands médias",
+      "id": "african-arguments",
+      "name": "African Arguments",
+      "category": "Institutions",
       "type": "rss",
-      "url": "https://qz.com/africa/rss",
+      "url": "https://africanarguments.org/feed/",
       "frequency": "hebdo",
-      "relevance": "tres_haute",
+      "relevance": "haute",
       "active": true
     },
     {
@@ -592,7 +592,7 @@
       "name": "BusinessDay Nigeria",
       "category": "Tech Afrique",
       "type": "rss",
-      "url": "https://businessday.ng/feed",
+      "url": "https://businessday.ng/technology/feed/",
       "frequency": "quotidien",
       "relevance": "haute",
       "active": true
@@ -628,51 +628,51 @@
       "active": true
     },
     {
-      "id": "google-africa-blog",
-      "name": "Google Africa Blog",
+      "id": "google-research-africa",
+      "name": "Google Research Africa Blog",
       "category": "Recherche IA",
       "type": "rss",
-      "url": "https://blog.google/around-the-globe/google-africa/rss/",
+      "url": "https://blog.research.google/atom.xml",
       "frequency": "variable",
       "relevance": "tres_haute",
       "active": true
     },
     {
-      "id": "brookings-africa",
-      "name": "Brookings Africa Research",
+      "id": "the-conversation-africa",
+      "name": "The Conversation Africa",
       "category": "Institutions",
       "type": "rss",
-      "url": "https://www.brookings.edu/topic/africa/feed/",
-      "frequency": "mensuel",
-      "relevance": "haute",
-      "active": true
-    },
-    {
-      "id": "medium-ai-africa",
-      "name": "Medium — IA en Afrique",
-      "category": "Recherche IA",
-      "type": "rss",
-      "url": "https://medium.com/feed/tag/artificial-intelligence-africa",
-      "frequency": "variable",
-      "relevance": "moyenne",
-      "active": true
-    },
-    {
-      "id": "the-exchange-africa",
-      "name": "The Exchange Africa",
-      "category": "Tech Afrique",
-      "type": "rss",
-      "url": "https://theexchange.africa/feed",
+      "url": "https://theconversation.com/africa/articles.atom",
       "frequency": "quotidien",
       "relevance": "haute",
       "active": true
     },
     {
-      "id": "kenyan-wallstreet",
-      "name": "Kenyan Wall Street",
-      "category": "Tech Afrique",
+      "id": "punch-ng",
+      "name": "The Punch Nigeria",
+      "category": "Grands médias",
       "type": "rss",
-      "url": "https://kenyanwallstreet.com/feed/",
+      "url": "https://punchng.com/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "france24-africa",
+      "name": "France 24 Africa",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.france24.com/en/africa/rss",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "rfi-africa",
+      "name": "RFI Africa English",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.rfi.fr/en/africa/rss",
       "frequency": "quotidien",
       "relevance": "haute",
       "active": true
@@ -688,23 +688,23 @@
       "active": true
     },
     {
-      "id": "stears-business",
-      "name": "Stears Business",
+      "id": "technext24",
+      "name": "TechNext24",
       "category": "Startups",
       "type": "rss",
-      "url": "https://www.stears.co/feed/",
-      "frequency": "hebdo",
+      "url": "https://technext24.com/feed/",
+      "frequency": "quotidien",
       "relevance": "haute",
       "active": true
     },
     {
-      "id": "cgtn-africa",
-      "name": "CGTN Africa",
+      "id": "bbc-africa",
+      "name": "BBC Africa",
       "category": "Grands médias",
       "type": "rss",
-      "url": "https://africa.cgtn.com/feed/",
+      "url": "https://feeds.bbci.co.uk/news/world/africa/rss.xml",
       "frequency": "quotidien",
-      "relevance": "moyenne",
+      "relevance": "haute",
       "active": true
     }
   ]
