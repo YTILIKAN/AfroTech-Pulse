@@ -648,11 +648,11 @@
       "active": true
     },
     {
-      "id": "punch-ng",
-      "name": "The Punch Nigeria",
-      "category": "Grands médias",
+      "id": "arxiv-cs-lg",
+      "name": "arXiv cs.LG — Machine Learning",
+      "category": "Recherche IA",
       "type": "rss",
-      "url": "https://punchng.com/feed/",
+      "url": "https://arxiv.org/rss/cs.LG",
       "frequency": "quotidien",
       "relevance": "haute",
       "active": true
