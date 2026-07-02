@@ -1,4 +1,5 @@
 import json
+import time
 import feedparser
 import requests
 from datetime import datetime
@@ -24,7 +25,11 @@ def scrape_rss(source):
     url = source["url"]
 
     try:
-        response = requests.get(url, timeout=REQUEST_TIMEOUT, headers={"User-Agent": "AfroTechPulse/1.0"})
+        response = requests.get(url, timeout=REQUEST_TIMEOUT, headers={
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
+            "Accept": "application/rss+xml, application/atom+xml, application/xml;q=0.9, text/xml;q=0.8, */*;q=0.5",
+            "Accept-Language": "en-US,en;q=0.9,fr;q=0.8",
+        })
         response.raise_for_status()
         feed = feedparser.parse(response.content)
     except requests.exceptions.Timeout:
@@ -81,6 +86,7 @@ def main():
         articles = scrape_rss(source)
         print(f"  → {len(articles)} articles trouvés")
         all_articles.extend(articles)
+        time.sleep(1)
 
     print(f"\nTotal : {len(all_articles)} articles collectés depuis {len(sources)} sources.")
     return all_articles
