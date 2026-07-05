@@ -15,25 +15,31 @@ def creer_base():
                 source_id   TEXT NOT NULL,
                 date_pub    TEXT,
                 contenu     TEXT,
-                date_collecte TEXT NOT NULL
+                date_collecte TEXT NOT NULL,
+                score_pertinence INTEGER DEFAULT 0
             )
         """)
+        colonnes = [row[1] for row in conn.execute("PRAGMA table_info(articles_raw)")]
+        if "score_pertinence" not in colonnes:
+            conn.execute(
+                "ALTER TABLE articles_raw ADD COLUMN score_pertinence INTEGER DEFAULT 0"
+            )
         conn.commit()
     finally:
         conn.close()
 
 
-def sauvegarder_article(titre, url, source_id, date_pub, contenu):
+def sauvegarder_article(titre, url, source_id, date_pub, contenu, score_pertinence):
     date_collecte = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
             """
             INSERT OR IGNORE INTO articles_raw
-                (titre, url, source_id, date_pub, contenu, date_collecte)
-            VALUES (?, ?, ?, ?, ?, ?)
+                (titre, url, source_id, date_pub, contenu, date_collecte, score_pertinence)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
-            (titre, url, source_id, date_pub, contenu, date_collecte),
+            (titre, url, source_id, date_pub, contenu, date_collecte, score_pertinence),
         )
         conn.commit()
     finally:
@@ -66,6 +72,7 @@ def _run_tests():
             source_id="techpoint-africa",
             date_pub="2026-06-20",
             contenu="Des startups utilisent l'IA pour optimiser les rendements agricoles.",
+            score_pertinence=55,
         )
         conn = sqlite3.connect(test_db)
         row = conn.execute(
