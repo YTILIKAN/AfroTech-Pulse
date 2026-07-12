@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "total": 20,
-    "last_updated": "2026-06-02",
-    "description": "Sources surveillées par AfroTech Pulse"
+    "total": 34,
+    "last_updated": "2026-06-30 (v3)",
+    "description": "Sources RSS actives surveillées par AfroTech Pulse (type: rss + active: true)"
   },
   "sources": [
     {
@@ -19,11 +19,11 @@
       "id": "huggingface-papers",
       "name": "Hugging Face Papers",
       "category": "Recherche IA",
-      "type": "rss",
+      "type": "web",
       "url": "https://huggingface.co/papers",
       "frequency": "quotidien",
       "relevance": "haute",
-      "active": true
+      "active": false
     },
     {
       "id": "masakhane-research",
@@ -35,7 +35,7 @@
       "relevance": "tres_haute",
       "active": true
     },
-    
+
     {
       "id": "deep-learning-indaba",
       "name": "Deep Learning Indaba",
@@ -121,7 +121,7 @@
       "name": "MIT Technology Review Africa",
       "category": "Grands médias",
       "type": "rss",
-      "url": "https://technologyreview.com",
+      "url": "https://technologyreview.com/feed",
       "frequency": "quotidien",
       "relevance": "moyenne",
       "active": true
@@ -131,7 +131,7 @@
       "name": "Wired Africa tags",
       "category": "Grands médias",
       "type": "rss",
-      "url": "https://wired.com",
+      "url": "https://wired.com/feed/rss",
       "frequency": "quotidien",
       "relevance": "moyenne",
       "active": true
@@ -191,10 +191,10 @@
       "name": "The Flip Africa",
       "category": "Podcasts",
       "type": "rss",
-      "url": "https://theflip.africa",
+      "url": "https://theflip.africa/feed",
       "frequency": "hebdo",
       "relevance": "haute",
-      "active": true
+      "active": false
     },
     {
       "id": "mckinsey-africa",
@@ -281,7 +281,7 @@
       "name": "Agence Ecofin - Telecom & Tech",
       "category": "Tech Afrique",
       "type": "rss",
-      "url": "https://www.agenceecofin.com/telecom/rss",
+      "url": "https://www.agenceecofin.com/feed",
       "frequency": "quotidien",
       "relevance": "tres_haute",
       "active": true
@@ -374,7 +374,7 @@
       "url": "https://www.ft.com/world/africa",
       "frequency": "hebdo",
       "relevance": "moyenne",
-      "active": true
+      "active": false
     },
     {
       "id": "jeune-afrique-tech",
@@ -444,7 +444,7 @@
       "url": "https://africatechpodcast.com/feed",
       "frequency": "mensuel",
       "relevance": "haute",
-      "active": true
+      "active": false
     },
     {
       "id": "tech-in-africa",
@@ -503,6 +503,207 @@
       "type": "web",
       "url": "https://africain.it",
       "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+
+    {
+      "id": "dw-africa",
+      "name": "DW Africa (Deutsche Welle)",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://rss.dw.com/rdf/rss-en-africa",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "vanguard-ng",
+      "name": "Vanguard Nigeria",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.vanguardngr.com/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "techcentral-sa",
+      "name": "TechCentral South Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://techcentral.co.za/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "humanipo",
+      "name": "HumanIPO",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://humanipo.com/feed",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "how-we-made-it",
+      "name": "How We Made It In Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://www.howwemadeitinafrica.com/feed",
+      "frequency": "hebdo",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "african-arguments",
+      "name": "African Arguments",
+      "category": "Institutions",
+      "type": "rss",
+      "url": "https://africanarguments.org/feed/",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "africa-report",
+      "name": "The Africa Report",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.theafricareport.com/feed",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "nairametrics",
+      "name": "Nairametrics Tech",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://nairametrics.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "businessday-ng",
+      "name": "BusinessDay Nigeria",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://businessday.ng/technology/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "african-business-mag",
+      "name": "African Business Magazine",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://african.business/feed",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "pc-tech-mag",
+      "name": "PC Tech Magazine",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://pctechmag.com/feed",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "gsma-newsroom",
+      "name": "GSMA Newsroom",
+      "category": "Institutions",
+      "type": "rss",
+      "url": "https://www.gsma.com/newsroom/feed/",
+      "frequency": "mensuel",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "google-research-africa",
+      "name": "Google Research Africa Blog",
+      "category": "Recherche IA",
+      "type": "rss",
+      "url": "https://blog.research.google/atom.xml",
+      "frequency": "variable",
+      "relevance": "tres_haute",
+      "active": true
+    },
+    {
+      "id": "the-conversation-africa",
+      "name": "The Conversation Africa",
+      "category": "Institutions",
+      "type": "rss",
+      "url": "https://theconversation.com/africa/articles.atom",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "arxiv-cs-lg",
+      "name": "arXiv cs.LG — Machine Learning",
+      "category": "Recherche IA",
+      "type": "rss",
+      "url": "https://arxiv.org/rss/cs.LG",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "france24-africa",
+      "name": "France 24 Africa",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.france24.com/en/africa/rss",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "rfi-africa",
+      "name": "RFI Africa English",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.rfi.fr/en/africa/rss",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "connecting-africa",
+      "name": "Connecting Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://www.connectingafrica.com/rss.xml",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "technext24",
+      "name": "TechNext24",
+      "category": "Startups",
+      "type": "rss",
+      "url": "https://technext24.com/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "bbc-africa",
+      "name": "BBC Africa",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://feeds.bbci.co.uk/news/world/africa/rss.xml",
+      "frequency": "quotidien",
       "relevance": "haute",
       "active": true
     }
