@@ -1,14 +1,19 @@
 # pipeline/summarize.py — Agent résumé LLM (Mistral) : 3 lignes, angle africain, en français
 
 import os
+import time
 
+import httpx
 from dotenv import load_dotenv
-from mistralai import Mistral
+from mistralai.client import Mistral
+from mistralai.client.errors import SDKError
 
 load_dotenv()
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 MODEL = "mistral-small-latest"
+MAX_TENTATIVES = 3
+DELAIS_RETRY = [2, 4, 8]
 
 client = Mistral(api_key=MISTRAL_API_KEY)
 
@@ -31,4 +36,31 @@ prudente (ex. "pourrait", "un modèle similaire existe déjà en..."), jamais pr
 un fait établi.
 
 Réponds uniquement avec les 3 lignes du résumé, sans titre ni introduction."""
+
+
+def summarize_article(titre: str, contenu: str) -> str | None:
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": f"Titre : {titre}\n\nContenu : {contenu}"},
+    ]
+
+    for tentative in range(1, MAX_TENTATIVES + 1):
+        try:
+            response = client.chat.complete(model=MODEL, messages=messages)
+            return response.choices[0].message.content.strip()
+        except SDKError as e:
+            if e.raw_response.status_code != 429:
+                print(f"  [ERREUR API {e.raw_response.status_code}] résumé impossible, on abandonne.")
+                return None
+            print(f"  [RATE LIMIT] tentative {tentative}/{MAX_TENTATIVES}...")
+        except httpx.TimeoutException:
+            print(f"  [TIMEOUT] tentative {tentative}/{MAX_TENTATIVES}...")
+
+        if tentative < MAX_TENTATIVES:
+            delai = DELAIS_RETRY[tentative - 1]
+            print(f"  Nouvelle tentative dans {delai}s...")
+            time.sleep(delai)
+
+    print(f"  [ÉCHEC] résumé abandonné après {MAX_TENTATIVES} tentatives.")
+    return None
 
