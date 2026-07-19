@@ -35,10 +35,15 @@ n'est pas dans l'article. La reformulation de l'angle africain doit rester plaus
 prudente (ex. "pourrait", "un modèle similaire existe déjà en..."), jamais présentée comme \
 un fait établi.
 
-Réponds uniquement avec les 3 lignes du résumé, sans titre ni introduction."""
+Format de réponse : 3 lignes distinctes séparées par un retour à la ligne (une phrase par ligne), \
+sans numérotation, sans tiret, sans titre ni introduction."""
 
 
 def summarize_article(titre: str, contenu: str) -> str | None:
+    if not contenu or len(contenu.strip()) < 50:
+        print("  [IGNORÉ] article trop court/vide pour être résumé.")
+        return None
+
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": f"Titre : {titre}\n\nContenu : {contenu}"},
