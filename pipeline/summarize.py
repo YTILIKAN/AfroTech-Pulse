@@ -11,9 +11,14 @@ from mistralai.client.errors import SDKError
 load_dotenv()
 
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+if not MISTRAL_API_KEY:
+    raise RuntimeError(
+        "MISTRAL_API_KEY manquante — copie .env.example en .env et renseigne ta clé."
+    )
+
 MODEL = "mistral-small-latest"
 MAX_TENTATIVES = 3
-DELAIS_RETRY = [2, 4, 8]
+LONGUEUR_MIN_CONTENU = 50
 
 client = Mistral(api_key=MISTRAL_API_KEY)
 
@@ -40,7 +45,7 @@ sans numérotation, sans tiret, sans titre ni introduction."""
 
 
 def summarize_article(titre: str, contenu: str) -> str | None:
-    if not contenu or len(contenu.strip()) < 50:
+    if not contenu or len(contenu.strip()) < LONGUEUR_MIN_CONTENU:
         print("  [IGNORÉ] article trop court/vide pour être résumé.")
         return None
 
@@ -62,7 +67,7 @@ def summarize_article(titre: str, contenu: str) -> str | None:
             print(f"  [TIMEOUT] tentative {tentative}/{MAX_TENTATIVES}...")
 
         if tentative < MAX_TENTATIVES:
-            delai = DELAIS_RETRY[tentative - 1]
+            delai = 2 ** tentative
             print(f"  Nouvelle tentative dans {delai}s...")
             time.sleep(delai)
 

@@ -19,9 +19,15 @@ def test_appel_reussi_retourne_le_resume_nettoye(monkeypatch):
     assert resultat == "Ligne 1.\nLigne 2.\nLigne 3."
 
 
+def echoue_si_appelee(**kwargs):
+    raise AssertionError("l'API ne doit pas être appelée pour un contenu vide/trop court")
+
+
 def test_contenu_vide_retourne_none(monkeypatch):
+    monkeypatch.setattr(summarize_module.client.chat, "complete", echoue_si_appelee)
     assert summarize_article("titre", "") is None
 
 
 def test_contenu_trop_court_retourne_none(monkeypatch):
+    monkeypatch.setattr(summarize_module.client.chat, "complete", echoue_si_appelee)
     assert summarize_article("titre", "trop court") is None
