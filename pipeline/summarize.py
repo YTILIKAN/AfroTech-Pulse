@@ -10,17 +10,23 @@ from mistralai.client.errors import SDKError
 
 load_dotenv()
 
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
-if not MISTRAL_API_KEY:
-    raise RuntimeError(
-        "MISTRAL_API_KEY manquante — copie .env.example en .env et renseigne ta clé."
-    )
-
 MODEL = "mistral-small-latest"
 MAX_TENTATIVES = 3
 LONGUEUR_MIN_CONTENU = 50
 
-client = Mistral(api_key=MISTRAL_API_KEY)
+_client = None
+
+
+def get_client():
+    global _client
+    if _client is None:
+        cle = os.getenv("MISTRAL_API_KEY")
+        if not cle:
+            raise RuntimeError(
+                "MISTRAL_API_KEY manquante — copie .env.example en .env et renseigne ta clé."
+            )
+        _client = Mistral(api_key=cle)
+    return _client
 
 SYSTEM_PROMPT = """Tu es journaliste pour AfroTech Pulse, une newsletter qui couvre l'actualité de \
 l'intelligence artificielle en Afrique.
@@ -56,11 +62,11 @@ def summarize_article(titre: str, contenu: str) -> str | None:
 
     for tentative in range(1, MAX_TENTATIVES + 1):
         try:
-            response = client.chat.complete(model=MODEL, messages=messages)
+            response = get_client().chat.complete(model=MODEL, messages=messages)
             return response.choices[0].message.content.strip()
         except SDKError as e:
-            if e.raw_response.status_code != 429:
-                print(f"  [ERREUR API {e.raw_response.status_code}] résumé impossible, on abandonne.")
+            if e.status_code != 429:
+                print(f"  [ERREUR API {e.status_code}] résumé impossible, on abandonne.")
                 return None
             print(f"  [RATE LIMIT] tentative {tentative}/{MAX_TENTATIVES}...")
         except httpx.TimeoutException:
