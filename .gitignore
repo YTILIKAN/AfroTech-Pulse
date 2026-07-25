@@ -13,9 +13,9 @@ build/
 .eggs/
 
 # Base de données locale
-*.db
 *.sqlite
 *.sqlite3
+# afrotech.db est volontairement suivi par Git (persistance cron)
 
 # Environnements virtuels
 venv/
