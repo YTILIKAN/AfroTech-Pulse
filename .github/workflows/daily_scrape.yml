@@ -5,6 +5,9 @@ on:
     - cron: "0 6 * * *"
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
@@ -21,9 +24,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run scraper
+      - name: Run orchestrator
         env:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-          TWITTER_BEARER_TOKEN: ${{ secrets.TWITTER_BEARER_TOKEN }}
-          CRUNCHBASE_API_KEY: ${{ secrets.CRUNCHBASE_API_KEY }}
-        run: python scraper/main.py
+        run: python orchestrator.py
+
+      - name: Sauvegarder la base de donnees
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Collecte automatique du ${{ github.run_started_at }}"
+          file_pattern: "afrotech.db"
