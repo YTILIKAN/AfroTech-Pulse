@@ -5,7 +5,7 @@ import argparse
 import database
 from pipeline.summarize import summarize_article
 
-SEUIL_PERTINENCE = 40
+SEUIL_PERTINENCE = database.SEUIL_PERTINENCE
 
 
 def run(limit=None):

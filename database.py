@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime, timezone
 
 DB_PATH = "afrotech.db"
+SEUIL_PERTINENCE = 40
 
 
 def creer_base():
@@ -61,7 +62,7 @@ def sauvegarder_resume(url, resume):
         conn.close()
 
 
-def articles_a_resumer(seuil=40, limit=None):
+def articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=None):
     conn = sqlite3.connect(DB_PATH)
     try:
         requete = """

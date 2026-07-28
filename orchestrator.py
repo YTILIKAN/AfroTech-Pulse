@@ -2,7 +2,7 @@ from scraper.main import load_sources, scrape_rss
 from pipeline.filter import score_article
 import database
 
-SEUIL_PERTINENCE = 40
+SEUIL_PERTINENCE = database.SEUIL_PERTINENCE
 
 
 def run():
