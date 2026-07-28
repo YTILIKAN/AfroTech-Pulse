@@ -16,7 +16,8 @@ def creer_base():
                 date_pub    TEXT,
                 contenu     TEXT,
                 date_collecte TEXT NOT NULL,
-                score_pertinence INTEGER DEFAULT 0
+                score_pertinence INTEGER DEFAULT 0,
+                resume TEXT
             )
         """)
         colonnes = [row[1] for row in conn.execute("PRAGMA table_info(articles_raw)")]
@@ -24,6 +25,8 @@ def creer_base():
             conn.execute(
                 "ALTER TABLE articles_raw ADD COLUMN score_pertinence INTEGER DEFAULT 0"
             )
+        if "resume" not in colonnes:
+            conn.execute("ALTER TABLE articles_raw ADD COLUMN resume TEXT")
         conn.commit()
     finally:
         conn.close()
@@ -40,6 +43,18 @@ def sauvegarder_article(titre, url, source_id, date_pub, contenu, score_pertinen
             VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (titre, url, source_id, date_pub, contenu, date_collecte, score_pertinence),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def sauvegarder_resume(url, resume):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            "UPDATE articles_raw SET resume = ? WHERE url = ?",
+            (resume, url),
         )
         conn.commit()
     finally:
@@ -90,6 +105,26 @@ def _run_tests():
         assert not article_existe("https://exemple.com/inexistant"), \
             "Test 2 ECHOUE : article_existe() devrait retourner False"
         print("Test 2 OK — article_existe() fonctionne correctement")
+
+        conn = sqlite3.connect(test_db)
+        colonnes = [row[1] for row in conn.execute("PRAGMA table_info(articles_raw)")]
+        conn.close()
+        assert "resume" in colonnes, "Test 3 ECHOUE : colonne resume absente après creer_base()"
+        print("Test 3 OK — colonne resume présente après creer_base()")
+
+        sauvegarder_resume("https://exemple.com/article-1", "Résumé généré par l'agent LLM.")
+        conn = sqlite3.connect(test_db)
+        row = conn.execute(
+            "SELECT titre, resume FROM articles_raw WHERE url = ?",
+            ("https://exemple.com/article-1",),
+        ).fetchone()
+        conn.close()
+
+        assert row[1] == "Résumé généré par l'agent LLM.", \
+            "Test 4 ECHOUE : sauvegarder_resume() n'a pas mis à jour le résumé"
+        assert row[0] == "IA révolutionne l'agriculture au Kenya", \
+            "Test 4 ECHOUE : sauvegarder_resume() a écrasé une autre colonne"
+        print("Test 4 OK — sauvegarder_resume() met à jour resume sans écraser les autres colonnes")
 
         print("\nTous les tests sont passés.")
     finally:
