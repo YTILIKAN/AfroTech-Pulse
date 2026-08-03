@@ -2,6 +2,7 @@ import sqlite3
 from datetime import datetime, timezone
 
 DB_PATH = "afrotech.db"
+SEUIL_PERTINENCE = 40
 
 
 def creer_base():
@@ -57,6 +58,23 @@ def sauvegarder_resume(url, resume):
             (resume, url),
         )
         conn.commit()
+    finally:
+        conn.close()
+
+
+def articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=None):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        requete = """
+            SELECT url, titre, contenu
+            FROM articles_raw
+            WHERE score_pertinence > ? AND resume IS NULL
+        """
+        params = [seuil]
+        if limit is not None:
+            requete += " LIMIT ?"
+            params.append(limit)
+        return conn.execute(requete, params).fetchall()
     finally:
         conn.close()
 
@@ -125,6 +143,38 @@ def _run_tests():
         assert row[0] == "IA révolutionne l'agriculture au Kenya", \
             "Test 4 ECHOUE : sauvegarder_resume() a écrasé une autre colonne"
         print("Test 4 OK — sauvegarder_resume() met à jour resume sans écraser les autres colonnes")
+
+        sauvegarder_article(
+            titre="Article hors-sujet",
+            url="https://exemple.com/article-2",
+            source_id="techpoint-africa",
+            date_pub="2026-06-21",
+            contenu="Contenu peu pertinent.",
+            score_pertinence=10,
+        )
+        sauvegarder_article(
+            titre="Article pertinent pas encore résumé",
+            url="https://exemple.com/article-3",
+            source_id="techpoint-africa",
+            date_pub="2026-06-22",
+            contenu="Contenu pertinent à résumer.",
+            score_pertinence=60,
+        )
+
+        a_resumer = articles_a_resumer(seuil=40)
+        urls = [row[0] for row in a_resumer]
+        assert "https://exemple.com/article-1" not in urls, \
+            "Test 5 ECHOUE : article déjà résumé ne doit pas être sélectionné"
+        assert "https://exemple.com/article-2" not in urls, \
+            "Test 5 ECHOUE : article sous le seuil ne doit pas être sélectionné"
+        assert "https://exemple.com/article-3" in urls, \
+            "Test 5 ECHOUE : article pertinent sans résumé doit être sélectionné"
+        print("Test 5 OK — articles_a_resumer() filtre bien par seuil et par resume IS NULL")
+
+        a_resumer_limite = articles_a_resumer(seuil=40, limit=0)
+        assert a_resumer_limite == [], \
+            "Test 5b ECHOUE : limit=0 devrait retourner une liste vide"
+        print("Test 5b OK — le paramètre limit est bien appliqué")
 
         print("\nTous les tests sont passés.")
     finally:
