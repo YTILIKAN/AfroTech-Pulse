@@ -116,3 +116,8 @@ def test_deduplicate_combine_doublons_exacts_et_quasi_doublons():
         "https://techcabal.com/moniepoint-funding",
         "https://techpoint.africa/kenya-ai-agriculture",
     }
+
+
+def test_liste_vide_ne_plante_pas():
+    resultat = deduplicate([])
+    assert resultat == []
