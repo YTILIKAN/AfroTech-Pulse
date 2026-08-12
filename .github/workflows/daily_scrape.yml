@@ -29,8 +29,13 @@ jobs:
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
         run: python orchestrator.py
 
+      - name: Run summarizer
+        env:
+          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        run: python -m pipeline.run_summarize
+
       - name: Sauvegarder la base de donnees
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Collecte automatique du ${{ github.run_started_at }}"
+          commit_message: "Collecte + resume automatique du ${{ github.run_started_at }}"
           file_pattern: "afrotech.db"
