@@ -1,15 +1,15 @@
-name: Daily Scrape
+name: Weekly Editor Selection
 
 on:
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "0 20 * * 0"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  scrape:
+  select:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,18 +24,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run orchestrator
-        env:
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-        run: python orchestrator.py
-
-      - name: Run summarizer
-        env:
-          MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
-        run: python -m pipeline.run_summarize
+      - name: Run editor selection
+        run: python -m pipeline.run_editor
 
       - name: Sauvegarder la base de donnees
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Collecte + resume automatique du ${{ github.run_started_at }}"
+          commit_message: "Selection editoriale automatique du ${{ github.run_started_at }}"
           file_pattern: "afrotech.db"

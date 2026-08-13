@@ -28,6 +28,12 @@ def creer_base():
             )
         if "resume" not in colonnes:
             conn.execute("ALTER TABLE articles_raw ADD COLUMN resume TEXT")
+        if "score_editorial" not in colonnes:
+            conn.execute("ALTER TABLE articles_raw ADD COLUMN score_editorial REAL")
+        if "selectionne" not in colonnes:
+            conn.execute(
+                "ALTER TABLE articles_raw ADD COLUMN selectionne INTEGER DEFAULT 0"
+            )
 
         conn.execute("""
             CREATE TABLE IF NOT EXISTS newsletters (
@@ -102,6 +108,35 @@ def articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=None):
             requete += " LIMIT ?"
             params.append(limit)
         return conn.execute(requete, params).fetchall()
+    finally:
+        conn.close()
+
+
+def articles_selectionnables(seuil=SEUIL_PERTINENCE, limit=None):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        requete = """
+            SELECT url, titre, contenu, source_id, date_pub, score_pertinence
+            FROM articles_raw
+            WHERE score_pertinence > ? AND resume IS NOT NULL AND selectionne = 0
+        """
+        params = [seuil]
+        if limit is not None:
+            requete += " LIMIT ?"
+            params.append(limit)
+        return conn.execute(requete, params).fetchall()
+    finally:
+        conn.close()
+
+
+def marquer_selectionne(url, score_editorial):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            "UPDATE articles_raw SET selectionne = 1, score_editorial = ? WHERE url = ?",
+            (score_editorial, url),
+        )
+        conn.commit()
     finally:
         conn.close()
 
@@ -203,16 +238,48 @@ def _run_tests():
             "Test 5b ECHOUE : limit=0 devrait retourner une liste vide"
         print("Test 5b OK — le paramètre limit est bien appliqué")
 
+        conn = sqlite3.connect(test_db)
+        colonnes = [row[1] for row in conn.execute("PRAGMA table_info(articles_raw)")]
+        conn.close()
+        assert "score_editorial" in colonnes, "Test 6 ECHOUE : colonne score_editorial absente"
+        assert "selectionne" in colonnes, "Test 6 ECHOUE : colonne selectionne absente"
+        print("Test 6 OK — colonnes score_editorial et selectionne présentes après creer_base()")
+
+        sauvegarder_resume("https://exemple.com/article-3", "Résumé de l'article pertinent.")
+        selectionnables = articles_selectionnables(seuil=40)
+        urls_selectionnables = [row[0] for row in selectionnables]
+        assert "https://exemple.com/article-1" in urls_selectionnables, \
+            "Test 7 ECHOUE : article résumé et pertinent doit être sélectionnable"
+        assert "https://exemple.com/article-2" not in urls_selectionnables, \
+            "Test 7 ECHOUE : article sous le seuil ne doit pas être sélectionnable"
+        assert "https://exemple.com/article-3" in urls_selectionnables, \
+            "Test 7 ECHOUE : article tout juste résumé doit être sélectionnable"
+        print("Test 7 OK — articles_selectionnables() filtre par seuil, resume et selectionne")
+
+        marquer_selectionne("https://exemple.com/article-1", score_editorial=72.5)
+        conn = sqlite3.connect(test_db)
+        row = conn.execute(
+            "SELECT selectionne, score_editorial FROM articles_raw WHERE url = ?",
+            ("https://exemple.com/article-1",),
+        ).fetchone()
+        conn.close()
+        assert row[0] == 1, "Test 8 ECHOUE : selectionne devrait valoir 1 après marquer_selectionne()"
+        assert row[1] == 72.5, "Test 8 ECHOUE : score_editorial mal enregistré"
+        urls_apres_marquage = [row[0] for row in articles_selectionnables(seuil=40)]
+        assert "https://exemple.com/article-1" not in urls_apres_marquage, \
+            "Test 8 ECHOUE : un article déjà sélectionné ne doit plus être proposé"
+        print("Test 8 OK — marquer_selectionne() enregistre le score et exclut l'article des prochains tirages")
+
         newsletter_id = sauvegarder_newsletter("# AfroTech Pulse\n\nContenu factice.", nb_articles=3)
         conn = sqlite3.connect(test_db)
         row = conn.execute(
             "SELECT statut, nb_articles FROM newsletters WHERE id = ?", (newsletter_id,)
         ).fetchone()
         conn.close()
-        assert row is not None, "Test 6 ECHOUE : newsletter introuvable après insertion"
-        assert row[0] == "brouillon", "Test 6 ECHOUE : statut par défaut devrait être 'brouillon'"
-        assert row[1] == 3, "Test 6 ECHOUE : nb_articles incorrect"
-        print("Test 6 OK — sauvegarder_newsletter() insère bien avec le statut brouillon")
+        assert row is not None, "Test 9 ECHOUE : newsletter introuvable après insertion"
+        assert row[0] == "brouillon", "Test 9 ECHOUE : statut par défaut devrait être 'brouillon'"
+        assert row[1] == 3, "Test 9 ECHOUE : nb_articles incorrect"
+        print("Test 9 OK — sauvegarder_newsletter() insère bien avec le statut brouillon")
 
         print("\nTous les tests sont passés.")
     finally:
