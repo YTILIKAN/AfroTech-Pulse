@@ -4,6 +4,14 @@ from datetime import datetime, timezone
 DB_PATH = "afrotech.db"
 SEUIL_PERTINENCE = 40
 
+TRANSITIONS_AUTORISEES = {
+    "brouillon": {"en_revue"},
+    "en_revue": {"validé", "rejeté"},
+    "validé": {"publié"},
+    "rejeté": set(),
+    "publié": set(),
+}
+
 
 def creer_base():
     conn = sqlite3.connect(DB_PATH)
@@ -42,6 +50,18 @@ def creer_base():
                 nb_articles     INTEGER NOT NULL,
                 statut          TEXT NOT NULL DEFAULT 'brouillon',
                 date_generation TEXT NOT NULL
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS newsletters_historique (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                newsletter_id   INTEGER NOT NULL,
+                ancien_statut   TEXT NOT NULL,
+                nouveau_statut  TEXT NOT NULL,
+                auteur          TEXT NOT NULL,
+                horodatage      TEXT NOT NULL,
+                FOREIGN KEY (newsletter_id) REFERENCES newsletters(id)
             )
         """)
         conn.commit()
@@ -91,6 +111,83 @@ def sauvegarder_newsletter(contenu, nb_articles, statut="brouillon"):
         )
         conn.commit()
         return curseur.lastrowid
+    finally:
+        conn.close()
+
+
+def changer_statut_newsletter(newsletter_id, nouveau_statut, auteur):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        row = conn.execute(
+            "SELECT statut FROM newsletters WHERE id = ?", (newsletter_id,)
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"Newsletter introuvable : id={newsletter_id}")
+
+        statut_actuel = row[0]
+        if nouveau_statut not in TRANSITIONS_AUTORISEES.get(statut_actuel, set()):
+            raise ValueError(
+                f"Transition interdite : {statut_actuel!r} → {nouveau_statut!r}"
+            )
+
+        horodatage = datetime.now(timezone.utc).isoformat()
+        conn.execute(
+            "UPDATE newsletters SET statut = ? WHERE id = ?",
+            (nouveau_statut, newsletter_id),
+        )
+        conn.execute(
+            """
+            INSERT INTO newsletters_historique
+                (newsletter_id, ancien_statut, nouveau_statut, auteur, horodatage)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (newsletter_id, statut_actuel, nouveau_statut, auteur, horodatage),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def modifier_contenu_newsletter(newsletter_id, nouveau_contenu):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            "UPDATE newsletters SET contenu = ? WHERE id = ?",
+            (nouveau_contenu, newsletter_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def derniere_newsletter_brouillon():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return conn.execute(
+            """
+            SELECT id, contenu, nb_articles, statut, date_generation
+            FROM newsletters
+            WHERE statut = 'brouillon'
+            ORDER BY date_generation DESC
+            LIMIT 1
+            """
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def historique_newsletter(newsletter_id):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return conn.execute(
+            """
+            SELECT ancien_statut, nouveau_statut, auteur, horodatage
+            FROM newsletters_historique
+            WHERE newsletter_id = ?
+            ORDER BY horodatage
+            """,
+            (newsletter_id,),
+        ).fetchall()
     finally:
         conn.close()
 
@@ -280,6 +377,75 @@ def _run_tests():
         assert row[0] == "brouillon", "Test 9 ECHOUE : statut par défaut devrait être 'brouillon'"
         assert row[1] == 3, "Test 9 ECHOUE : nb_articles incorrect"
         print("Test 9 OK — sauvegarder_newsletter() insère bien avec le statut brouillon")
+
+        changer_statut_newsletter(newsletter_id, "en_revue", "Alice")
+        conn = sqlite3.connect(test_db)
+        row = conn.execute(
+            "SELECT statut FROM newsletters WHERE id = ?", (newsletter_id,)
+        ).fetchone()
+        conn.close()
+        assert row[0] == "en_revue", "Test 10 ECHOUE : le statut devrait être 'en_revue'"
+        historique = historique_newsletter(newsletter_id)
+        assert len(historique) == 1, "Test 10 ECHOUE : une transition devrait être historisée"
+        assert historique[0] == ("brouillon", "en_revue", "Alice", historique[0][3]), \
+            "Test 10 ECHOUE : entrée d'historique incorrecte"
+        print("Test 10 OK — changer_statut_newsletter() applique une transition autorisée et l'historise")
+
+        try:
+            changer_statut_newsletter(newsletter_id, "publié", "Alice")
+            assert False, "Test 11 ECHOUE : en_revue → publié devrait être interdit"
+        except ValueError:
+            pass
+        print("Test 11 OK — changer_statut_newsletter() rejette une transition non prévue par la machine à états")
+
+        changer_statut_newsletter(newsletter_id, "rejeté", "Bob")
+        conn = sqlite3.connect(test_db)
+        row = conn.execute(
+            "SELECT statut FROM newsletters WHERE id = ?", (newsletter_id,)
+        ).fetchone()
+        conn.close()
+        assert row[0] == "rejeté", "Test 12 ECHOUE : le statut devrait être 'rejeté'"
+        print("Test 12 OK — changer_statut_newsletter() autorise en_revue → rejeté")
+
+        try:
+            changer_statut_newsletter(newsletter_id, "publié", "Bob")
+            assert False, "Test 13 ECHOUE : rejeté → publié devrait être interdit"
+        except ValueError:
+            pass
+        conn = sqlite3.connect(test_db)
+        row = conn.execute(
+            "SELECT statut FROM newsletters WHERE id = ?", (newsletter_id,)
+        ).fetchone()
+        conn.close()
+        assert row[0] == "rejeté", "Test 13 ECHOUE : le statut ne doit pas bouger après une transition refusée"
+        print("Test 13 OK — une newsletter rejetée ne peut pas être publiée")
+
+        historique = historique_newsletter(newsletter_id)
+        assert len(historique) == 2, "Test 14 ECHOUE : deux transitions valides auraient dû être historisées"
+        assert [h[:3] for h in historique] == [
+            ("brouillon", "en_revue", "Alice"),
+            ("en_revue", "rejeté", "Bob"),
+        ], "Test 14 ECHOUE : historique_newsletter() ne reflète pas les transitions dans l'ordre"
+        print("Test 14 OK — historique_newsletter() ne retient que les transitions effectivement appliquées, dans l'ordre chronologique")
+
+        newsletter_id_2 = sauvegarder_newsletter("# AfroTech Pulse\n\nBrouillon 2.", nb_articles=5)
+        modifier_contenu_newsletter(newsletter_id_2, "# AfroTech Pulse\n\nContenu corrigé par l'éditeur.")
+        conn = sqlite3.connect(test_db)
+        row = conn.execute(
+            "SELECT contenu, nb_articles, statut FROM newsletters WHERE id = ?", (newsletter_id_2,)
+        ).fetchone()
+        conn.close()
+        assert row[0] == "# AfroTech Pulse\n\nContenu corrigé par l'éditeur.", \
+            "Test 15 ECHOUE : modifier_contenu_newsletter() n'a pas mis à jour le contenu"
+        assert row[1] == 5, "Test 15 ECHOUE : modifier_contenu_newsletter() a écrasé nb_articles"
+        assert row[2] == "brouillon", "Test 15 ECHOUE : modifier_contenu_newsletter() a écrasé statut"
+        print("Test 15 OK — modifier_contenu_newsletter() met à jour le contenu sans écraser les autres colonnes")
+
+        derniere = derniere_newsletter_brouillon()
+        assert derniere is not None, "Test 16 ECHOUE : une newsletter en brouillon devrait être trouvée"
+        assert derniere[0] == newsletter_id_2, \
+            "Test 16 ECHOUE : derniere_newsletter_brouillon() ne retourne pas la bonne newsletter"
+        print("Test 16 OK — derniere_newsletter_brouillon() retourne la dernière newsletter en statut brouillon")
 
         print("\nTous les tests sont passés.")
     finally:
