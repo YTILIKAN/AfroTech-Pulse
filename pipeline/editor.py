@@ -63,10 +63,11 @@ def selectionner_articles_semaine(seuil=None, maintenant=None):
     candidats = database.articles_selectionnables(seuil=seuil)
 
     enrichis = []
-    for url, titre, contenu, source_id, date_pub, score_pertinence in candidats:
+    for url, titre, contenu, source_id, date_pub, score_pertinence, resume in candidats:
         enrichis.append({
             "url": url,
             "titre": titre,
+            "resume": resume,
             "source_id": source_id,
             "pays": detecter_pays(titre, contenu),
             "score_editorial": score_editorial(score_pertinence, date_pub, maintenant),

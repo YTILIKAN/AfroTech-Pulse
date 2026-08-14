@@ -116,7 +116,7 @@ def articles_selectionnables(seuil=SEUIL_PERTINENCE, limit=None):
     conn = sqlite3.connect(DB_PATH)
     try:
         requete = """
-            SELECT url, titre, contenu, source_id, date_pub, score_pertinence
+            SELECT url, titre, contenu, source_id, date_pub, score_pertinence, resume
             FROM articles_raw
             WHERE score_pertinence > ? AND resume IS NOT NULL AND selectionne = 0
         """

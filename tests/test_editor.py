@@ -38,8 +38,9 @@ def test_date_invalide_ne_plante_pas_et_bonus_nul():
 
 # --- selectionner_articles_semaine() : unitaires (base mockée) -------------
 
-def _candidat(url, titre, score_pertinence, date_pub="2026-08-10T00:00:00", source_id="src"):
-    return (url, titre, titre, source_id, date_pub, score_pertinence)
+def _candidat(url, titre, score_pertinence, date_pub="2026-08-10T00:00:00", source_id="src",
+              resume="Résumé de test."):
+    return (url, titre, titre, source_id, date_pub, score_pertinence, resume)
 
 
 def test_moins_de_5_candidats_retourne_tout_sans_planter(monkeypatch):
@@ -102,6 +103,17 @@ def test_tous_du_meme_pays_force_la_diversite_mais_atteint_le_minimum(monkeypatc
     urls = {a["url"] for a in selection}
     assert urls == {"ng0", "ng1", "ng2", "ng3", "ng4"}, \
         "le repli doit prendre les meilleurs scores restants, dans l'ordre"
+
+
+def test_resume_du_candidat_est_reporte_dans_la_selection(monkeypatch):
+    candidats = [_candidat("u1", "Nigeria startup news", 60, resume="Une startup nigériane lève des fonds.")]
+    monkeypatch.setattr(editor_module.database, "articles_selectionnables", lambda seuil: candidats)
+
+    selection = selectionner_articles_semaine(seuil=40, maintenant=MAINTENANT)
+
+    assert selection[0]["resume"] == "Une startup nigériane lève des fonds.", \
+        "le resume du candidat doit être reporté tel quel dans le dict de sélection, " \
+        "sinon newsletter/writer.py reçoit un article sans contenu à rédiger"
 
 
 def test_selection_est_triee_par_score_decroissant(monkeypatch):

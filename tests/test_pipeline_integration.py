@@ -1,7 +1,10 @@
 import sqlite3
+from types import SimpleNamespace
 
 import database
+import newsletter.writer as writer_module
 import orchestrator
+import pipeline.editor as editor_module
 import pipeline.run_editor as run_editor_module
 import pipeline.run_summarize as run_summarize_module
 
@@ -95,3 +98,56 @@ def test_selection_ne_trouve_rien_si_le_resume_est_saute(monkeypatch, tmp_path):
     conn.close()
 
     assert selectionnes == 0, "sans résumé, la sélection doit être vide (c'était le bug)"
+
+
+class FakeClient:
+    def __init__(self, complete_fn):
+        self.chat = SimpleNamespace(complete=complete_fn)
+
+
+def test_selection_s6_alimente_generer_newsletter_avec_un_resume_reel(monkeypatch, tmp_path):
+    """Bout-en-bout S6 -> S7 : les articles retournés par selectionner_articles_semaine()
+    (S6) doivent porter un resume exploitable par generer_newsletter() (S7). Avant le fix
+    de articles_selectionnables()/selectionner_articles_semaine() (qui ne sélectionnaient
+    ni ne reportaient la colonne resume), chaque article arrivait sans resume ni contenu,
+    et le LLM devait inventer le texte à partir du seul titre, ce qui viole le garde-fou
+    anti-invention de generer_newsletter()."""
+    test_db = tmp_path / "pipeline_s6_s7_test.db"
+    monkeypatch.setattr(database, "DB_PATH", str(test_db))
+    monkeypatch.setattr(orchestrator, "load_sources", lambda: FAKE_SOURCES)
+    monkeypatch.setattr(orchestrator, "scrape_rss", fake_scrape_rss)
+    monkeypatch.setattr(run_summarize_module, "summarize_article",
+                         lambda titre, contenu: f"Résumé automatique de : {titre}")
+
+    orchestrator.run()
+    run_summarize_module.run()
+
+    selection = editor_module.selectionner_articles_semaine()
+
+    assert len(selection) > 0, "la sélection doit trouver des candidats pour que ce test soit significatif"
+    assert all(article.get("resume") for article in selection), (
+        "chaque article sélectionné par S6 doit porter un resume non vide, sinon S7 reçoit "
+        "un article sans contenu et le LLM invente le texte à partir du titre seul"
+    )
+
+    messages_captures = {}
+
+    def fake_complete(**kwargs):
+        messages_captures["messages"] = kwargs["messages"]
+        newsletter = "## Édito\nTest.\n\n## Cette semaine\n" + "\n".join(
+            f"### {i}. {a['titre']}\n{a['resume']}\nLien : {a['url']}"
+            for i, a in enumerate(selection, start=1)
+        ) + "\n\n## Conclusion\nTest."
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=newsletter))])
+
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(fake_complete))
+
+    contenu_newsletter = writer_module.generer_newsletter(selection)
+
+    assert contenu_newsletter is not None
+    prompt_utilisateur = messages_captures["messages"][1]["content"]
+    for article in selection:
+        assert article["resume"] in prompt_utilisateur, (
+            f"le resume de l'article '{article['titre']}' doit apparaître dans le prompt "
+            "envoyé au LLM, sinon la newsletter est rédigée sans ce contenu"
+        )
