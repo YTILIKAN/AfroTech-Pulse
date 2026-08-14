@@ -34,6 +34,16 @@ def creer_base():
             conn.execute(
                 "ALTER TABLE articles_raw ADD COLUMN selectionne INTEGER DEFAULT 0"
             )
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS newsletters (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                contenu         TEXT NOT NULL,
+                nb_articles     INTEGER NOT NULL,
+                statut          TEXT NOT NULL DEFAULT 'brouillon',
+                date_generation TEXT NOT NULL
+            )
+        """)
         conn.commit()
     finally:
         conn.close()
@@ -68,6 +78,23 @@ def sauvegarder_resume(url, resume):
         conn.close()
 
 
+def sauvegarder_newsletter(contenu, nb_articles, statut="brouillon"):
+    date_generation = datetime.now(timezone.utc).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        curseur = conn.execute(
+            """
+            INSERT INTO newsletters (contenu, nb_articles, statut, date_generation)
+            VALUES (?, ?, ?, ?)
+            """,
+            (contenu, nb_articles, statut, date_generation),
+        )
+        conn.commit()
+        return curseur.lastrowid
+    finally:
+        conn.close()
+
+
 def articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=None):
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -89,7 +116,7 @@ def articles_selectionnables(seuil=SEUIL_PERTINENCE, limit=None):
     conn = sqlite3.connect(DB_PATH)
     try:
         requete = """
-            SELECT url, titre, contenu, source_id, date_pub, score_pertinence
+            SELECT url, titre, contenu, source_id, date_pub, score_pertinence, resume
             FROM articles_raw
             WHERE score_pertinence > ? AND resume IS NOT NULL AND selectionne = 0
         """
@@ -242,6 +269,17 @@ def _run_tests():
         assert "https://exemple.com/article-1" not in urls_apres_marquage, \
             "Test 8 ECHOUE : un article déjà sélectionné ne doit plus être proposé"
         print("Test 8 OK — marquer_selectionne() enregistre le score et exclut l'article des prochains tirages")
+
+        newsletter_id = sauvegarder_newsletter("# AfroTech Pulse\n\nContenu factice.", nb_articles=3)
+        conn = sqlite3.connect(test_db)
+        row = conn.execute(
+            "SELECT statut, nb_articles FROM newsletters WHERE id = ?", (newsletter_id,)
+        ).fetchone()
+        conn.close()
+        assert row is not None, "Test 9 ECHOUE : newsletter introuvable après insertion"
+        assert row[0] == "brouillon", "Test 9 ECHOUE : statut par défaut devrait être 'brouillon'"
+        assert row[1] == 3, "Test 9 ECHOUE : nb_articles incorrect"
+        print("Test 9 OK — sauvegarder_newsletter() insère bien avec le statut brouillon")
 
         print("\nTous les tests sont passés.")
     finally:
