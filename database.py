@@ -53,6 +53,12 @@ def creer_base():
             )
         """)
 
+        colonnes_newsletters = [row[1] for row in conn.execute("PRAGMA table_info(newsletters)")]
+        if "whatsapp_publie" not in colonnes_newsletters:
+            conn.execute("ALTER TABLE newsletters ADD COLUMN whatsapp_publie INTEGER DEFAULT 0")
+        if "linkedin_publie" not in colonnes_newsletters:
+            conn.execute("ALTER TABLE newsletters ADD COLUMN linkedin_publie INTEGER DEFAULT 0")
+
         conn.execute("""
             CREATE TABLE IF NOT EXISTS newsletters_historique (
                 id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -188,6 +194,36 @@ def historique_newsletter(newsletter_id):
             """,
             (newsletter_id,),
         ).fetchall()
+    finally:
+        conn.close()
+
+
+def obtenir_newsletter(newsletter_id):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return conn.execute(
+            """
+            SELECT id, contenu, nb_articles, statut, date_generation, whatsapp_publie, linkedin_publie
+            FROM newsletters
+            WHERE id = ?
+            """,
+            (newsletter_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+CANAUX_PUBLICATION = {"whatsapp": "whatsapp_publie", "linkedin": "linkedin_publie"}
+
+
+def marquer_canal_publie(newsletter_id, canal):
+    colonne = CANAUX_PUBLICATION[canal]
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            f"UPDATE newsletters SET {colonne} = 1 WHERE id = ?", (newsletter_id,)
+        )
+        conn.commit()
     finally:
         conn.close()
 
@@ -446,6 +482,23 @@ def _run_tests():
         assert derniere[0] == newsletter_id_2, \
             "Test 16 ECHOUE : derniere_newsletter_brouillon() ne retourne pas la bonne newsletter"
         print("Test 16 OK — derniere_newsletter_brouillon() retourne la dernière newsletter en statut brouillon")
+
+        newsletter_id_3 = sauvegarder_newsletter("# AfroTech Pulse\n\nÉdition à publier.", nb_articles=6)
+        changer_statut_newsletter(newsletter_id_3, "en_revue", "Steve")
+        changer_statut_newsletter(newsletter_id_3, "validé", "Steve")
+
+        newsletter = obtenir_newsletter(newsletter_id_3)
+        assert newsletter is not None, "Test 17 ECHOUE : newsletter introuvable via obtenir_newsletter()"
+        assert newsletter[3] == "validé", "Test 17 ECHOUE : statut incorrect"
+        assert newsletter[5] == 0 and newsletter[6] == 0, \
+            "Test 17 ECHOUE : whatsapp_publie/linkedin_publie devraient valoir 0 par défaut"
+        print("Test 17 OK — obtenir_newsletter() retourne la newsletter avec le suivi par canal à 0 par défaut")
+
+        marquer_canal_publie(newsletter_id_3, "whatsapp")
+        newsletter = obtenir_newsletter(newsletter_id_3)
+        assert newsletter[5] == 1, "Test 18 ECHOUE : whatsapp_publie devrait valoir 1"
+        assert newsletter[6] == 0, "Test 18 ECHOUE : linkedin_publie ne doit pas être affecté"
+        print("Test 18 OK — marquer_canal_publie() ne marque que le canal concerné")
 
         print("\nTous les tests sont passés.")
     finally:
