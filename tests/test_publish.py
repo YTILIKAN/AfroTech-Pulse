@@ -13,58 +13,58 @@ def _preparer_newsletter_validee(monkeypatch, tmp_path):
     return newsletter_id
 
 
-def test_whatsapp_ok_linkedin_ok_marque_publie(monkeypatch, tmp_path):
+def test_telegram_ok_email_ok_marque_publie(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "whatsapp", lambda contenu: True)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "linkedin", lambda contenu: True)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: True)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: True)
 
     resultats = publish_newsletter()
 
-    assert resultats == {"whatsapp": True, "linkedin": True}
+    assert resultats == {"telegram": True, "email": True}
     newsletter = database.newsletter_par_id(newsletter_id)
     assert newsletter[3] == "publié", "les deux canaux ont réussi, le statut global doit être 'publié'"
 
 
-def test_whatsapp_ok_linkedin_ko_statut_reste_valide(monkeypatch, tmp_path):
+def test_telegram_ok_email_ko_statut_reste_valide(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "whatsapp", lambda contenu: True)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "linkedin", lambda contenu: False)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: True)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: False)
 
     resultats = publish_newsletter()
 
-    assert resultats == {"whatsapp": True, "linkedin": False}
+    assert resultats == {"telegram": True, "email": False}
     newsletter = database.newsletter_par_id(newsletter_id)
     assert newsletter[3] == "validé", "un échec partiel ne doit jamais marquer statut = publié"
 
     publications = {c: s for c, s, *_ in database.statuts_publication(newsletter_id)}
-    assert publications["whatsapp"] == "publié"
-    assert publications["linkedin"] == "echec"
+    assert publications["telegram"] == "publié"
+    assert publications["email"] == "echec"
 
 
-def test_whatsapp_ko_linkedin_ok_statut_reste_valide(monkeypatch, tmp_path):
+def test_telegram_ko_email_ok_statut_reste_valide(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "whatsapp", lambda contenu: False)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "linkedin", lambda contenu: True)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: False)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: True)
 
     resultats = publish_newsletter()
 
-    assert resultats == {"whatsapp": False, "linkedin": True}
+    assert resultats == {"telegram": False, "email": True}
     newsletter = database.newsletter_par_id(newsletter_id)
     assert newsletter[3] == "validé", "un échec partiel ne doit jamais marquer statut = publié"
 
     publications = {c: s for c, s, *_ in database.statuts_publication(newsletter_id)}
-    assert publications["whatsapp"] == "echec"
-    assert publications["linkedin"] == "publié"
+    assert publications["telegram"] == "echec"
+    assert publications["email"] == "publié"
 
 
-def test_whatsapp_ko_linkedin_ko_statut_reste_valide(monkeypatch, tmp_path):
+def test_telegram_ko_email_ko_statut_reste_valide(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "whatsapp", lambda contenu: False)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "linkedin", lambda contenu: False)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: False)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: False)
 
     resultats = publish_newsletter()
 
-    assert resultats == {"whatsapp": False, "linkedin": False}
+    assert resultats == {"telegram": False, "email": False}
     newsletter = database.newsletter_par_id(newsletter_id)
     assert newsletter[3] == "validé", "un échec total ne doit jamais marquer statut = publié"
 
@@ -72,31 +72,31 @@ def test_whatsapp_ko_linkedin_ko_statut_reste_valide(monkeypatch, tmp_path):
 def test_republication_ciblee_ne_retouche_pas_le_canal_deja_reussi(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
 
-    appels_whatsapp = {"n": 0}
+    appels_telegram = {"n": 0}
 
-    def whatsapp_fn(contenu):
-        appels_whatsapp["n"] += 1
+    def telegram_fn(contenu):
+        appels_telegram["n"] += 1
         return True
 
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "whatsapp", whatsapp_fn)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "linkedin", lambda contenu: False)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", telegram_fn)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: False)
 
     publish_newsletter()
-    assert appels_whatsapp["n"] == 1
+    assert appels_telegram["n"] == 1
 
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "linkedin", lambda contenu: True)
-    succes = republier_canal(newsletter_id, "linkedin")
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: True)
+    succes = republier_canal(newsletter_id, "email")
 
     assert succes is True
-    assert appels_whatsapp["n"] == 1, "republier_canal() ne doit pas réenvoyer sur le canal déjà réussi"
+    assert appels_telegram["n"] == 1, "republier_canal() ne doit pas réenvoyer sur le canal déjà réussi"
 
     newsletter = database.newsletter_par_id(newsletter_id)
     assert newsletter[3] == "publié", \
         "après republication réussie du seul canal en échec, le statut global doit passer à 'publié'"
 
     tentatives = {c: t for c, s, t, e, h in database.statuts_publication(newsletter_id)}
-    assert tentatives["linkedin"] == 2, "republier_canal() doit incrémenter le compteur de tentatives du canal concerné"
-    assert tentatives["whatsapp"] == 1, "le canal déjà réussi ne doit pas recevoir de tentative supplémentaire"
+    assert tentatives["email"] == 2, "republier_canal() doit incrémenter le compteur de tentatives du canal concerné"
+    assert tentatives["telegram"] == 1, "le canal déjà réussi ne doit pas recevoir de tentative supplémentaire"
 
 
 def test_aucune_newsletter_validee_ne_fait_rien(monkeypatch, tmp_path):

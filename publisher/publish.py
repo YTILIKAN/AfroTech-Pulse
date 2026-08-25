@@ -1,13 +1,9 @@
-# publisher/publish.py — Orchestration de la publication multicanal (WhatsApp + LinkedIn)
+# publisher/publish.py — Orchestration de la publication multicanal (Telegram + Email)
 
 import database
-from publisher.linkedin_client import envoyer_linkedin
-from publisher.whatsapp_client import envoyer_whatsapp
 
-ENVOI_PAR_CANAL = {
-    "whatsapp": envoyer_whatsapp,
-    "linkedin": envoyer_linkedin,
-}
+# À compléter au fur et à mesure de l'ajout des clients (ex. publisher.telegram_client.envoyer_telegram)
+ENVOI_PAR_CANAL = {}
 
 
 def _tentatives_precedentes(newsletter_id, canal):

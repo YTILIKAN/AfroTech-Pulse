@@ -12,7 +12,7 @@ TRANSITIONS_AUTORISEES = {
     "publié": set(),
 }
 
-CANAUX_PUBLICATION = ("whatsapp", "linkedin")
+CANAUX_PUBLICATION = ("telegram", "email")
 STATUTS_PUBLICATION_CANAL = {"en_attente", "publié", "echec"}
 
 
@@ -572,20 +572,20 @@ def _run_tests():
             "Test 18 ECHOUE : tous_canaux_publies() devrait être False sans aucune publication enregistrée"
         print("Test 18 OK — aucune publication enregistrée par défaut pour une newsletter validée")
 
-        enregistrer_publication_canal(newsletter_id_3, "whatsapp", "publié", tentatives=1)
-        enregistrer_publication_canal(newsletter_id_3, "linkedin", "echec", tentatives=3, erreur="Timeout API LinkedIn")
+        enregistrer_publication_canal(newsletter_id_3, "telegram", "publié", tentatives=1)
+        enregistrer_publication_canal(newsletter_id_3, "email", "echec", tentatives=3, erreur="Timeout API Resend")
 
         publications = dict(
             (canal, (statut, tentatives, erreur))
             for canal, statut, tentatives, erreur, _ in statuts_publication(newsletter_id_3)
         )
-        assert publications["whatsapp"] == ("publié", 1, None), \
-            "Test 19 ECHOUE : le statut WhatsApp devrait être 'publié' avec 1 tentative"
-        assert publications["linkedin"] == ("echec", 3, "Timeout API LinkedIn"), \
-            "Test 19 ECHOUE : le statut LinkedIn devrait refléter l'échec et son message d'erreur"
+        assert publications["telegram"] == ("publié", 1, None), \
+            "Test 19 ECHOUE : le statut Telegram devrait être 'publié' avec 1 tentative"
+        assert publications["email"] == ("echec", 3, "Timeout API Resend"), \
+            "Test 19 ECHOUE : le statut Email devrait refléter l'échec et son message d'erreur"
         assert not tous_canaux_publies(newsletter_id_3), \
             "Test 19 ECHOUE : tous_canaux_publies() doit être False si un canal est en échec"
-        print("Test 19 OK — enregistrer_publication_canal() trace précisément un succès partiel (WhatsApp OK, LinkedIn KO)")
+        print("Test 19 OK — enregistrer_publication_canal() trace précisément un succès partiel (Telegram OK, Email KO)")
 
         changer_statut_newsletter(newsletter_id_3, "publié", "Alice")
         conn = sqlite3.connect(test_db)
@@ -601,20 +601,20 @@ def _run_tests():
         changer_statut_newsletter(newsletter_id_4, "en_revue", "Alice")
         changer_statut_newsletter(newsletter_id_4, "validé", "Alice")
 
-        enregistrer_publication_canal(newsletter_id_4, "whatsapp", "echec", tentatives=1, erreur="Timeout")
-        enregistrer_publication_canal(newsletter_id_4, "linkedin", "echec", tentatives=1, erreur="Timeout")
+        enregistrer_publication_canal(newsletter_id_4, "telegram", "echec", tentatives=1, erreur="Timeout")
+        enregistrer_publication_canal(newsletter_id_4, "email", "echec", tentatives=1, erreur="Timeout")
         assert not tous_canaux_publies(newsletter_id_4), \
             "Test 21 ECHOUE : tous_canaux_publies() doit être False si les deux canaux ont échoué"
 
-        enregistrer_publication_canal(newsletter_id_4, "whatsapp", "publié", tentatives=2)
-        enregistrer_publication_canal(newsletter_id_4, "linkedin", "publié", tentatives=2)
+        enregistrer_publication_canal(newsletter_id_4, "telegram", "publié", tentatives=2)
+        enregistrer_publication_canal(newsletter_id_4, "email", "publié", tentatives=2)
         assert tous_canaux_publies(newsletter_id_4), \
             "Test 21 ECHOUE : tous_canaux_publies() doit être True une fois les deux canaux republiés avec succès"
 
         publications_apres_retry = dict(
             (canal, tentatives) for canal, _, tentatives, _, _ in statuts_publication(newsletter_id_4)
         )
-        assert publications_apres_retry == {"whatsapp": 2, "linkedin": 2}, \
+        assert publications_apres_retry == {"telegram": 2, "email": 2}, \
             "Test 21 ECHOUE : un nouvel appel à enregistrer_publication_canal() doit mettre à jour la ligne existante (upsert), pas en créer une nouvelle"
         print("Test 21 OK — republier un canal en échec met à jour sa ligne (upsert) sans dupliquer, et tous_canaux_publies() ne devient True qu'après succès des deux canaux")
 
