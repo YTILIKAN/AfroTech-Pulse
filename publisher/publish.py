@@ -1,9 +1,12 @@
 # publisher/publish.py — Orchestration de la publication multicanal (Telegram + Email)
 
 import database
+from publisher.telegram_client import envoyer_telegram
 
-# À compléter au fur et à mesure de l'ajout des clients (ex. publisher.telegram_client.envoyer_telegram)
-ENVOI_PAR_CANAL = {}
+# "email" sera ajouté une fois le client Resend écrit
+ENVOI_PAR_CANAL = {
+    "telegram": envoyer_telegram,
+}
 
 
 def _tentatives_precedentes(newsletter_id, canal):
