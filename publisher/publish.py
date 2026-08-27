@@ -1,11 +1,12 @@
 # publisher/publish.py — Orchestration de la publication multicanal (Telegram + Email)
 
 import database
+from publisher.email_client import envoyer_email
 from publisher.telegram_client import envoyer_telegram
 
-# "email" sera ajouté une fois le client Resend écrit
 ENVOI_PAR_CANAL = {
     "telegram": envoyer_telegram,
+    "email": envoyer_email,
 }
 
 

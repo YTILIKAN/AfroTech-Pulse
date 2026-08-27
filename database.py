@@ -81,6 +81,15 @@ def creer_base():
                 UNIQUE (newsletter_id, canal)
             )
         """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS abonnes_email (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                email               TEXT NOT NULL UNIQUE,
+                statut              TEXT NOT NULL DEFAULT 'actif',
+                date_inscription    TEXT NOT NULL
+            )
+        """)
         conn.commit()
     finally:
         conn.close()
@@ -276,6 +285,43 @@ def tous_canaux_publies(newsletter_id, canaux=CANAUX_PUBLICATION):
         conn.close()
     statuts = dict(rows)
     return all(statuts.get(canal) == "publié" for canal in canaux)
+
+
+def ajouter_abonne_email(email):
+    date_inscription = datetime.now(timezone.utc).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO abonnes_email (email, statut, date_inscription)
+            VALUES (?, 'actif', ?)
+            """,
+            (email, date_inscription),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def lister_abonnes_actifs():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return [
+            row[0] for row in conn.execute(
+                "SELECT email FROM abonnes_email WHERE statut = 'actif' ORDER BY date_inscription"
+            )
+        ]
+    finally:
+        conn.close()
+
+
+def desabonner_email(email):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute("UPDATE abonnes_email SET statut = 'inactif' WHERE email = ?", (email,))
+        conn.commit()
+    finally:
+        conn.close()
 
 
 def historique_newsletter(newsletter_id):
@@ -617,6 +663,20 @@ def _run_tests():
         assert publications_apres_retry == {"telegram": 2, "email": 2}, \
             "Test 21 ECHOUE : un nouvel appel à enregistrer_publication_canal() doit mettre à jour la ligne existante (upsert), pas en créer une nouvelle"
         print("Test 21 OK — republier un canal en échec met à jour sa ligne (upsert) sans dupliquer, et tous_canaux_publies() ne devient True qu'après succès des deux canaux")
+
+        assert lister_abonnes_actifs() == [], "Test 22 ECHOUE : aucun abonné ne devrait exister par défaut"
+
+        ajouter_abonne_email("test1@exemple.com")
+        ajouter_abonne_email("test2@exemple.com")
+        ajouter_abonne_email("test1@exemple.com")
+        assert lister_abonnes_actifs() == ["test1@exemple.com", "test2@exemple.com"], \
+            "Test 22 ECHOUE : ajouter_abonne_email() doit ignorer les doublons et lister les actifs par ordre d'inscription"
+        print("Test 22 OK — ajouter_abonne_email() ajoute sans dupliquer, lister_abonnes_actifs() retourne les emails actifs")
+
+        desabonner_email("test1@exemple.com")
+        assert lister_abonnes_actifs() == ["test2@exemple.com"], \
+            "Test 23 ECHOUE : desabonner_email() doit retirer l'email de la liste des actifs"
+        print("Test 23 OK — desabonner_email() retire bien l'abonné de la liste des actifs")
 
         print("\nTous les tests sont passés.")
     finally:

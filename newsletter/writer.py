@@ -65,8 +65,8 @@ la matière donnée.
 
 Format de sortie : Markdown brut, respectant exactement les titres de section ci-dessus \
 ("## Édito", "## Cette semaine", "## Conclusion"), sans introduction ni commentaire avant ou \
-après la newsletter elle-même. Ce même Markdown doit rester lisible tel quel sur WhatsApp, \
-LinkedIn et le site web — pas de tableaux, pas d'images, pas de HTML."""
+après la newsletter elle-même. Ce même Markdown doit rester lisible tel quel sur Telegram \
+et par email — pas de tableaux, pas d'images, pas de HTML."""
 
 
 def _construire_prompt_utilisateur(articles: list[dict]) -> str:
