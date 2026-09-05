@@ -69,7 +69,13 @@ def summarize_article(titre: str, contenu: str) -> str | None:
             response = get_client().post(f"/models/{MODEL}:generateContent", json=payload)
             if response.status_code == 200:
                 data = response.json()
-                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                candidats = data.get("candidates") or []
+                if not candidats:
+                    # Réponse 200 sans contenu utilisable (ex. bloqué par un filtre de sécurité
+                    # Gemini) — pas transitoire, réessayer le même contenu ne changera rien.
+                    print(f"  [ERREUR API] réponse Gemini sans contenu utilisable, on abandonne. {data}")
+                    return None
+                return candidats[0]["content"]["parts"][0]["text"].strip()
             if response.status_code == 429 or response.status_code >= 500:
                 print(f"  [RATE LIMIT/SERVEUR {response.status_code}] tentative {tentative}/{MAX_TENTATIVES}...")
             else:

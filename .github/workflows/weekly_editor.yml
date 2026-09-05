@@ -24,11 +24,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run editor selection
-        run: python -m pipeline.run_editor
+      - name: Run editor selection and newsletter writing
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python -m newsletter.run_writer
 
       - name: Sauvegarder la base de donnees
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Selection editoriale automatique du ${{ github.run_started_at }}"
+          commit_message: "Selection editoriale + redaction automatique du ${{ github.run_started_at }}"
           file_pattern: "afrotech.db"

@@ -13,23 +13,20 @@ load_dotenv()
 
 MAX_TENTATIVES = 3
 
-_client = None
-
-
 def get_client():
-    global _client
-    if _client is None:
-        cle = os.getenv("RESEND_API_KEY")
-        if not cle:
-            raise RuntimeError(
-                "RESEND_API_KEY manquante — copie .env.example en .env et renseigne ta clé."
-            )
-        _client = httpx.Client(
-            base_url="https://api.resend.com",
-            headers={"Authorization": f"Bearer {cle}"},
-            timeout=10.0,
+    # Pas de mise en cache du client : si la clé RESEND_API_KEY change dans .env pendant
+    # que review_ui.py tourne en continu, un client mis en cache resterait périmé jusqu'au
+    # redémarrage du process et échouerait avec un 401 qui ressemble à un bug API.
+    cle = os.getenv("RESEND_API_KEY")
+    if not cle:
+        raise RuntimeError(
+            "RESEND_API_KEY manquante — copie .env.example en .env et renseigne ta clé."
         )
-    return _client
+    return httpx.Client(
+        base_url="https://api.resend.com",
+        headers={"Authorization": f"Bearer {cle}"},
+        timeout=10.0,
+    )
 
 
 def envoyer_email(contenu: str) -> bool:
@@ -47,7 +44,11 @@ def envoyer_email(contenu: str) -> bool:
     date_edition = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     payload = {
         "from": expediteur,
-        "to": destinataires,
+        # Les abonnés sont en bcc (pas en to) pour qu'ils ne voient pas les adresses
+        # des uns et des autres dans l'en-tête To: — "to" pointe sur l'expéditeur lui-même,
+        # simple exigence technique de l'API Resend qui veut un destinataire principal.
+        "to": [expediteur],
+        "bcc": destinataires,
         "subject": f"AfroTech Pulse — Édition du {date_edition}",
         "text": contenu,
     }

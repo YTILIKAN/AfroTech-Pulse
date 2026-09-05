@@ -26,6 +26,14 @@ def _publier_canal(newsletter_id, canal, contenu):
         print(f"  [CONFIG MANQUANTE - {canal}] {e}")
         succes = False
         erreur = str(e)
+    except Exception as e:
+        # Filet de sécurité large et volontaire : une erreur réseau (DNS, connexion coupée)
+        # ou tout autre imprévu venant d'un client ne doit jamais faire planter
+        # publish_newsletter() avant d'avoir tenté les autres canaux, ni faire planter
+        # review_ui.py qui appelle ça directement depuis un bouton sans try/except.
+        print(f"  [ERREUR INATTENDUE - {canal}] {e}")
+        succes = False
+        erreur = str(e)
 
     tentatives = _tentatives_precedentes(newsletter_id, canal) + 1
     statut = "publié" if succes else "echec"
@@ -68,12 +76,17 @@ def publish_newsletter(auteur="orchestrateur"):
 
 
 def republier_canal(newsletter_id, canal, auteur="orchestrateur"):
-    if canal not in ENVOI_PAR_CANAL:
-        raise ValueError(f"Canal inconnu : {canal!r}")
+    if canal not in database.CANAUX_PUBLICATION:
+        raise ValueError(f"Canal inconnu ou désactivé : {canal!r}")
 
     newsletter = database.newsletter_par_id(newsletter_id)
     if newsletter is None:
         raise ValueError(f"Newsletter introuvable : id={newsletter_id}")
+    if newsletter[3] != "validé":
+        raise ValueError(
+            f"Impossible de republier : la newsletter #{newsletter_id} a le statut "
+            f"{newsletter[3]!r}, seul le statut 'validé' est autorisé."
+        )
 
     contenu = newsletter[1]
     succes = _publier_canal(newsletter_id, canal, contenu)

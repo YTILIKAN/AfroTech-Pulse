@@ -1,3 +1,6 @@
+import httpx
+import pytest
+
 import database
 import publisher.publish as publish_module
 from publisher.publish import publish_newsletter, republier_canal
@@ -106,3 +109,41 @@ def test_republication_ciblee_ne_retouche_pas_le_canal_deja_reussi(monkeypatch, 
     tentatives = {c: t for c, s, t, e, h in database.statuts_publication(newsletter_id)}
     assert tentatives["email"] == 2, "republier_canal() doit incrémenter le compteur de tentatives du canal concerné"
     assert tentatives["telegram"] == 1, "le canal déjà réussi ne doit pas recevoir de tentative supplémentaire"
+
+
+def test_erreur_inattendue_sur_un_canal_ne_bloque_pas_les_autres(monkeypatch, tmp_path):
+    newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
+    monkeypatch.setattr(database, "CANAUX_PUBLICATION", ("telegram", "email"))
+
+    def telegram_qui_plante(contenu):
+        raise httpx.ConnectError("DNS resolution failed")
+
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", telegram_qui_plante)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: True)
+
+    resultats = publish_newsletter()
+
+    assert resultats == {"telegram": False, "email": True}, (
+        "une exception inattendue (ex. erreur réseau) sur un canal ne doit ni faire planter "
+        "publish_newsletter() ni empêcher de tenter les autres canaux"
+    )
+    newsletter = database.newsletter_par_id(newsletter_id)
+    assert newsletter[3] == "validé", "un échec partiel ne doit jamais marquer statut = publié"
+
+
+def test_republier_canal_refuse_si_newsletter_pas_validee(monkeypatch, tmp_path):
+    test_db = tmp_path / "test_republier_statut.db"
+    monkeypatch.setattr(database, "DB_PATH", str(test_db))
+    database.creer_base()
+    newsletter_id = database.sauvegarder_newsletter("contenu", nb_articles=1)
+    # reste en 'brouillon' : jamais validé, ne doit jamais partir en publication
+
+    with pytest.raises(ValueError):
+        republier_canal(newsletter_id, "telegram")
+
+
+def test_republier_canal_refuse_canal_desactive(monkeypatch, tmp_path):
+    newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
+    # "email" n'est pas dans database.CANAUX_PUBLICATION par défaut (juste ("telegram",))
+    with pytest.raises(ValueError):
+        republier_canal(newsletter_id, "email")

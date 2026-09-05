@@ -30,7 +30,10 @@ def test_envoi_reussi_retourne_true(monkeypatch):
 
     def post_fn(url, json):
         appels["n"] += 1
-        assert json["to"] == ["test@exemple.com"]
+        assert json["to"] == ["newsletter@ytilikan.org"], \
+            "'to' doit pointer sur l'expéditeur, pas sur les abonnés"
+        assert json["bcc"] == ["test@exemple.com"], \
+            "les abonnés doivent être en bcc pour ne pas exposer leurs adresses entre eux"
         return fake_response(200)
 
     monkeypatch.setattr(email_module, "get_client", lambda: FakeClient(post_fn))
@@ -107,10 +110,23 @@ def test_envoie_a_tous_les_abonnes_actifs_en_un_seul_appel(monkeypatch):
 
     def post_fn(url, json):
         appels["n"] += 1
-        assert json["to"] == ["a@exemple.com", "b@exemple.com", "c@exemple.com"]
+        assert json["bcc"] == ["a@exemple.com", "b@exemple.com", "c@exemple.com"]
         return fake_response(200)
 
     monkeypatch.setattr(email_module, "get_client", lambda: FakeClient(post_fn))
 
     assert envoyer_email(CONTENU) is True
     assert appels["n"] == 1, "tous les abonnés doivent être inclus dans un seul envoi, pas un par abonné"
+
+
+def test_get_client_ne_met_pas_en_cache_une_cle_perimee(monkeypatch):
+    monkeypatch.setenv("RESEND_API_KEY", "cle-initiale")
+    client_1 = email_module.get_client()
+    assert client_1.headers["authorization"] == "Bearer cle-initiale"
+
+    monkeypatch.setenv("RESEND_API_KEY", "cle-mise-a-jour")
+    client_2 = email_module.get_client()
+    assert client_2.headers["authorization"] == "Bearer cle-mise-a-jour", (
+        "get_client() ne doit jamais renvoyer un client construit avec une clé périmée "
+        "mise en cache — sinon un changement de clé dans .env exige un redémarrage du process"
+    )

@@ -181,6 +181,18 @@ def test_erreur_serveur_est_reessayee(monkeypatch):
     assert appels["n"] == 2
 
 
+def test_generer_newsletter_reponse_sans_candidats_ne_plante_pas(monkeypatch):
+    """Même garde-fou que pipeline/summarize.py : une réponse 200 avec 'candidates' vide
+    (filtre de sécurité Gemini) ne doit jamais faire planter avec un IndexError."""
+
+    def post_fn(url, json):
+        return SimpleNamespace(status_code=200, text="", json=lambda: {"candidates": []})
+
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(post_fn))
+
+    assert generer_newsletter(fabriquer_articles(3)) is None
+
+
 def test_abandonne_apres_max_tentatives_si_rate_limit_persiste(monkeypatch):
     monkeypatch.setattr(writer_module.time, "sleep", lambda _: None)
 

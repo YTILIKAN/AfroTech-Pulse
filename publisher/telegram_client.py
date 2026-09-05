@@ -14,8 +14,6 @@ LIMITE_CARACTERES_TELEGRAM = 4096
 
 _MOTIF_LIEN = re.compile(r"^Lien\s*:\s*(\S+)\s*$")
 
-_client = None
-
 
 def _echapper_html(texte):
     return texte.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
@@ -34,7 +32,9 @@ def _mettre_en_forme_telegram(contenu):
         if ligne.startswith("### "):
             lignes.append(f"<b>{_echapper_html(ligne[4:])}</b>")
         elif ligne.startswith("## "):
-            lignes.append(f"<b>{_echapper_html(ligne[3:]).upper()}</b>")
+            # .upper() AVANT l'échappement : sinon "&" -> "&amp;" -> "&AMP;" (majuscule)
+            # n'est plus une entité HTML valide et Telegram rejette le message.
+            lignes.append(f"<b>{_echapper_html(ligne[3:].upper())}</b>")
         else:
             correspondance = _MOTIF_LIEN.match(ligne.strip())
             if correspondance:
@@ -46,18 +46,45 @@ def _mettre_en_forme_telegram(contenu):
 
 
 def get_client():
-    global _client
-    if _client is None:
-        token = os.getenv("TELEGRAM_BOT_TOKEN")
-        if not token:
-            raise RuntimeError(
-                "TELEGRAM_BOT_TOKEN manquant — copie .env.example en .env et renseigne ton token."
-            )
-        _client = httpx.Client(
-            base_url=f"https://api.telegram.org/bot{token}",
-            timeout=10.0,
+    # Pas de mise en cache : évite qu'un token périmé reste utilisé après un changement
+    # de .env sans redémarrage du process (même raisonnement que email_client.get_client()).
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    if not token:
+        raise RuntimeError(
+            "TELEGRAM_BOT_TOKEN manquant — copie .env.example en .env et renseigne ton token."
         )
-    return _client
+    return httpx.Client(
+        base_url=f"https://api.telegram.org/bot{token}",
+        timeout=10.0,
+    )
+
+
+def _coupure_valide(texte, position):
+    prefixe = texte[:position]
+    # (1) Pas au milieu d'une balise elle-même (ex. entre "<" et "a href=...>") : le nombre
+    #     de "<" et de ">" doit être égal, sinon une balise est littéralement tronquée.
+    if prefixe.count("<") != prefixe.count(">"):
+        return False
+    # (2) Pas d'ancre/gras ouvert sans sa fermeture (une fois (1) garanti, "<a"/"</a>" et
+    #     "<b>"/"</b>" ne peuvent plus être des fragments de balise, juste des paires réelles).
+    return prefixe.count("<a") == prefixe.count("</a>") and prefixe.count("<b>") == prefixe.count("</b>")
+
+
+def _trouver_coupure_sure(texte, limite):
+    # On cherche le point de coupure le plus "propre" possible, en vérifiant à chaque fois
+    # que les balises HTML (<a href="...">...</a>, <b>...</b>) restent équilibrées et jamais
+    # tronquées avant ce point — Telegram rejette un message HTML mal formé.
+    for candidat in (texte.rfind("\n\n", 0, limite), texte.rfind("\n", 0, limite)):
+        if candidat != -1 and _coupure_valide(texte, candidat):
+            return candidat
+
+    # Dernier recours : reculer caractère par caractère depuis la limite jusqu'à un point
+    # valide. Cas extrême (une seule "ligne" dépassant la limite à elle seule) qui ne
+    # devrait pas arriver avec le contenu réel d'une newsletter (toujours multi-lignes).
+    position = limite
+    while position > 0 and not _coupure_valide(texte, position):
+        position -= 1
+    return position if position > 0 else limite
 
 
 def _decouper_message(contenu, limite=LIMITE_CARACTERES_TELEGRAM):
@@ -67,9 +94,7 @@ def _decouper_message(contenu, limite=LIMITE_CARACTERES_TELEGRAM):
     morceaux = []
     reste = contenu
     while len(reste) > limite:
-        coupure = reste.rfind("\n\n", 0, limite)
-        if coupure == -1:
-            coupure = limite
+        coupure = _trouver_coupure_sure(reste, limite)
         morceaux.append(reste[:coupure].strip())
         reste = reste[coupure:].strip()
     if reste:

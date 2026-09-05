@@ -115,7 +115,11 @@ def generer_newsletter(articles: list[dict]) -> str | None:
             response = get_client().post(f"/models/{MODEL}:generateContent", json=payload)
             if response.status_code == 200:
                 data = response.json()
-                newsletter = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+                candidats = data.get("candidates") or []
+                if not candidats:
+                    print(f"  [ERREUR API] réponse Gemini sans contenu utilisable, on abandonne. {data}")
+                    return None
+                newsletter = candidats[0]["content"]["parts"][0]["text"].strip()
                 if not structure_respectee(newsletter, len(articles)):
                     print(
                         "  [ATTENTION] la structure générée ne respecte pas exactement le "

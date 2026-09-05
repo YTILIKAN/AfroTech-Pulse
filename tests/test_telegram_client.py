@@ -102,6 +102,51 @@ def test_contenu_long_est_decoupe_en_plusieurs_messages(monkeypatch):
     assert appels["n"] > 1, "un contenu de plus de 4096 caractères doit être envoyé en plusieurs messages"
 
 
+def test_decoupe_ne_coupe_pas_au_milieu_dune_balise_html():
+    texte_avant = "x" * (telegram_module.LIMITE_CARACTERES_TELEGRAM - 30)
+    lien = '<a href="https://exemple.com/article">Lire l\'article complet</a>'
+    contenu = texte_avant + lien + "y" * 200
+
+    morceaux = telegram_module._decouper_message(contenu)
+
+    assert len(morceaux) > 1
+    for morceau in morceaux:
+        assert morceau.count("<a") == morceau.count("</a>"), (
+            "un morceau ne doit jamais contenir une balise <a> ouverte sans sa fermeture "
+            "— Telegram rejette un message HTML mal formé"
+        )
+
+
+def test_get_client_ne_met_pas_en_cache_un_token_perime(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "token-initial")
+    client_1 = telegram_module.get_client()
+    assert "token-initial" in str(client_1.base_url)
+
+    monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "token-mis-a-jour")
+    client_2 = telegram_module.get_client()
+    assert "token-mis-a-jour" in str(client_2.base_url), (
+        "get_client() ne doit jamais renvoyer un client construit avec un token périmé mis en cache"
+    )
+
+
+def test_titre_avec_esperluette_reste_une_entite_html_valide(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_CHANNEL_ID", "@ytilikan")
+    contenu = "## Fintech & Santé"
+    textes_envoyes = []
+
+    def post_fn(url, json):
+        textes_envoyes.append(json["text"])
+        return fake_response(200)
+
+    monkeypatch.setattr(telegram_module, "get_client", lambda: FakeClient(post_fn))
+
+    assert envoyer_telegram(contenu) is True
+    # Le "&" doit rester "&amp;" (minuscule, entité valide), pas "&AMP;" produit si .upper()
+    # est appliqué après l'échappement HTML.
+    assert "<b>FINTECH &amp; SANTÉ</b>" in textes_envoyes[0]
+    assert "&AMP;" not in textes_envoyes[0]
+
+
 def test_les_titres_sont_convertis_en_gras_html(monkeypatch):
     monkeypatch.setenv("TELEGRAM_CHANNEL_ID", "@ytilikan")
     contenu = "## Édito\nUn texte d'intro.\n\n### 1. Un article\nUn résumé."

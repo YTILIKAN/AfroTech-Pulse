@@ -110,6 +110,18 @@ def test_summarize_timeout_est_reessaye(monkeypatch):
     assert appels["n"] == summarize_module.MAX_TENTATIVES
 
 
+def test_summarize_reponse_sans_candidats_ne_plante_pas(monkeypatch):
+    """Gemini peut renvoyer 200 avec 'candidates' vide (ex. contenu bloqué par un filtre
+    de sécurité) — ça ne doit jamais faire planter avec un IndexError."""
+
+    def post_fn(url, json):
+        return SimpleNamespace(status_code=200, text="", json=lambda: {"candidates": []})
+
+    monkeypatch.setattr(summarize_module, "get_client", lambda: FakeClient(post_fn))
+
+    assert summarize_article("titre", CONTENU_VALIDE) is None
+
+
 def test_summarize_abandonne_apres_max_tentatives_si_rate_limit_persiste(monkeypatch):
     monkeypatch.setattr(summarize_module.time, "sleep", lambda _: None)
 
