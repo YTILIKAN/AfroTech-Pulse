@@ -101,8 +101,8 @@ def test_selection_ne_trouve_rien_si_le_resume_est_saute(monkeypatch, tmp_path):
 
 
 class FakeClient:
-    def __init__(self, complete_fn):
-        self.chat = SimpleNamespace(complete=complete_fn)
+    def __init__(self, post_fn):
+        self.post = post_fn
 
 
 def test_selection_s6_alimente_generer_newsletter_avec_un_resume_reel(monkeypatch, tmp_path):
@@ -130,22 +130,23 @@ def test_selection_s6_alimente_generer_newsletter_avec_un_resume_reel(monkeypatc
         "un article sans contenu et le LLM invente le texte à partir du titre seul"
     )
 
-    messages_captures = {}
+    payloads_captures = {}
 
-    def fake_complete(**kwargs):
-        messages_captures["messages"] = kwargs["messages"]
+    def fake_post(url, json):
+        payloads_captures["payload"] = json
         newsletter = "## Édito\nTest.\n\n## Cette semaine\n" + "\n".join(
             f"### {i}. {a['titre']}\n{a['resume']}\nLien : {a['url']}"
             for i, a in enumerate(selection, start=1)
         ) + "\n\n## Conclusion\nTest."
-        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=newsletter))])
+        json_data = {"candidates": [{"content": {"parts": [{"text": newsletter}]}}]}
+        return SimpleNamespace(status_code=200, text="", json=lambda: json_data)
 
-    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(fake_complete))
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(fake_post))
 
     contenu_newsletter = writer_module.generer_newsletter(selection)
 
     assert contenu_newsletter is not None
-    prompt_utilisateur = messages_captures["messages"][1]["content"]
+    prompt_utilisateur = payloads_captures["payload"]["contents"][0]["parts"][0]["text"]
     for article in selection:
         assert article["resume"] in prompt_utilisateur, (
             f"le resume de l'article '{article['titre']}' doit apparaître dans le prompt "

@@ -4,6 +4,7 @@ from pathlib import Path
 from streamlit.testing.v1 import AppTest
 
 import database
+import publisher.publish as publish_module
 
 REVIEW_UI_PATH = str(Path(__file__).resolve().parent.parent / "validation" / "review_ui.py")
 
@@ -97,3 +98,74 @@ def test_parcours_rejet_empeche_publication_ulterieure(monkeypatch, tmp_path):
     assert not at2.exception
     assert "Aucune newsletter en attente de validation" in at2.info[0].value, \
         "une newsletter rejetée ne doit plus apparaître comme à valider dans l'UI"
+
+
+def test_panneau_publication_bloque_tant_que_la_checklist_nest_pas_complete(monkeypatch, tmp_path):
+    test_db = tmp_path / "afrotech_review_ui_publication_test.db"
+    monkeypatch.setattr(database, "DB_PATH", str(test_db))
+    database.creer_base()
+    newsletter_id = database.sauvegarder_newsletter(CONTENU_GENERE, nb_articles=1)
+    database.changer_statut_newsletter(newsletter_id, "en_revue", "Steve")
+    database.changer_statut_newsletter(newsletter_id, "validé", "Steve")
+
+    appels = {"n": 0}
+
+    def fake_publish_newsletter(auteur):
+        appels["n"] += 1
+        database.enregistrer_publication_canal(newsletter_id, "telegram", "publié", tentatives=1)
+        database.changer_statut_newsletter(newsletter_id, "publié", auteur)
+        return {"telegram": True}
+
+    monkeypatch.setattr(publish_module, "publish_newsletter", fake_publish_newsletter)
+
+    at = AppTest.from_file(REVIEW_UI_PATH)
+    at.run()
+    assert not at.exception, "le panneau de publication ne doit pas lever d'exception à l'affichage"
+    assert at.button[0].disabled, \
+        "le bouton Publier doit rester désactivé tant que la checklist et le prénom ne sont pas remplis"
+
+    at.checkbox[0].check().run()
+    at.checkbox[1].check().run()
+    assert at.button[0].disabled, "le bouton doit rester désactivé tant qu'une case n'est pas cochée"
+
+    at.checkbox[2].check().run()
+    at.text_input[0].set_value("Steve").run()
+    assert not at.button[0].disabled, \
+        "le bouton doit s'activer une fois les 3 cases cochées et le prénom renseigné"
+
+    at.button[0].click().run()
+    assert not at.exception, "cliquer sur Publier ne doit pas lever d'exception"
+    assert appels["n"] == 1, "publish_newsletter() doit être appelée exactement une fois"
+
+    newsletter_apres = database.newsletter_par_id(newsletter_id)
+    assert newsletter_apres[3] == "publié", \
+        "après une publication réussie, le statut global doit passer à 'publié'"
+
+
+def test_panneau_publication_affiche_lechec_sans_planter(monkeypatch, tmp_path):
+    test_db = tmp_path / "afrotech_review_ui_publication_echec_test.db"
+    monkeypatch.setattr(database, "DB_PATH", str(test_db))
+    database.creer_base()
+    newsletter_id = database.sauvegarder_newsletter(CONTENU_GENERE, nb_articles=1)
+    database.changer_statut_newsletter(newsletter_id, "en_revue", "Steve")
+    database.changer_statut_newsletter(newsletter_id, "validé", "Steve")
+
+    def fake_publish_newsletter(auteur):
+        database.enregistrer_publication_canal(newsletter_id, "telegram", "echec", tentatives=1, erreur="Timeout")
+        return {"telegram": False}
+
+    monkeypatch.setattr(publish_module, "publish_newsletter", fake_publish_newsletter)
+
+    at = AppTest.from_file(REVIEW_UI_PATH)
+    at.run()
+    at.checkbox[0].check().run()
+    at.checkbox[1].check().run()
+    at.checkbox[2].check().run()
+    at.text_input[0].set_value("Steve").run()
+    at.button[0].click().run()
+
+    assert not at.exception, "un échec de publication ne doit jamais faire planter l'UI"
+
+    newsletter_apres = database.newsletter_par_id(newsletter_id)
+    assert newsletter_apres[3] == "validé", \
+        "un échec de publication ne doit jamais marquer statut = publié"

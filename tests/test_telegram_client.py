@@ -100,3 +100,52 @@ def test_contenu_long_est_decoupe_en_plusieurs_messages(monkeypatch):
 
     assert envoyer_telegram(contenu_long) is True
     assert appels["n"] > 1, "un contenu de plus de 4096 caractères doit être envoyé en plusieurs messages"
+
+
+def test_les_titres_sont_convertis_en_gras_html(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_CHANNEL_ID", "@ytilikan")
+    contenu = "## Édito\nUn texte d'intro.\n\n### 1. Un article\nUn résumé."
+    textes_envoyes = []
+
+    def post_fn(url, json):
+        textes_envoyes.append(json["text"])
+        assert json["parse_mode"] == "HTML"
+        return fake_response(200)
+
+    monkeypatch.setattr(telegram_module, "get_client", lambda: FakeClient(post_fn))
+
+    assert envoyer_telegram(contenu) is True
+    texte = textes_envoyes[0]
+    assert "<b>ÉDITO</b>" in texte
+    assert "<b>1. Un article</b>" in texte
+    assert "##" not in texte and "###" not in texte
+
+
+def test_les_liens_deviennent_cliquables(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_CHANNEL_ID", "@ytilikan")
+    contenu = "Un résumé.\nLien : https://exemple.com/article"
+    textes_envoyes = []
+
+    def post_fn(url, json):
+        textes_envoyes.append(json["text"])
+        return fake_response(200)
+
+    monkeypatch.setattr(telegram_module, "get_client", lambda: FakeClient(post_fn))
+
+    assert envoyer_telegram(contenu) is True
+    assert '<a href="https://exemple.com/article">Lire l\'article complet</a>' in textes_envoyes[0]
+
+
+def test_caracteres_html_speciaux_sont_echappes(monkeypatch):
+    monkeypatch.setenv("TELEGRAM_CHANNEL_ID", "@ytilikan")
+    contenu = "Une startup <Fintech> & Co lève des fonds."
+    textes_envoyes = []
+
+    def post_fn(url, json):
+        textes_envoyes.append(json["text"])
+        return fake_response(200)
+
+    monkeypatch.setattr(telegram_module, "get_client", lambda: FakeClient(post_fn))
+
+    assert envoyer_telegram(contenu) is True
+    assert textes_envoyes[0] == "Une startup &lt;Fintech&gt; &amp; Co lève des fonds."

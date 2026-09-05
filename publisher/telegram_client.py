@@ -1,6 +1,7 @@
 # publisher/telegram_client.py — Client Telegram Bot API, publication sur le canal Y'TILIKAN
 
 import os
+import re
 import time
 
 import httpx
@@ -11,7 +12,37 @@ load_dotenv()
 MAX_TENTATIVES = 3
 LIMITE_CARACTERES_TELEGRAM = 4096
 
+_MOTIF_LIEN = re.compile(r"^Lien\s*:\s*(\S+)\s*$")
+
 _client = None
+
+
+def _echapper_html(texte):
+    return texte.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _mettre_en_forme_telegram(contenu):
+    """Convertit le Markdown de la newsletter (## Titre, ### N. Titre, Lien : url) en
+    HTML supporté par Telegram (parse_mode="HTML") : titres en gras, liens cliquables.
+
+    HTML est utilisé plutôt que le mode Markdown natif de Telegram, qui échoue dès qu'un
+    underscore/astérisque n'est pas correctement "fermé" — bien plus fréquent dans du texte
+    normal (URLs, noms propres) que les 3 caractères (&, <, >) à échapper en HTML.
+    """
+    lignes = []
+    for ligne in contenu.split("\n"):
+        if ligne.startswith("### "):
+            lignes.append(f"<b>{_echapper_html(ligne[4:])}</b>")
+        elif ligne.startswith("## "):
+            lignes.append(f"<b>{_echapper_html(ligne[3:]).upper()}</b>")
+        else:
+            correspondance = _MOTIF_LIEN.match(ligne.strip())
+            if correspondance:
+                url = _echapper_html(correspondance.group(1))
+                lignes.append(f'🔗 <a href="{url}">Lire l\'article complet</a>')
+            else:
+                lignes.append(_echapper_html(ligne))
+    return "\n".join(lignes)
 
 
 def get_client():
@@ -46,11 +77,8 @@ def _decouper_message(contenu, limite=LIMITE_CARACTERES_TELEGRAM):
     return morceaux
 
 
-def _envoyer_message(channel_id, texte):
-    # Pas de parse_mode : le mode Markdown de Telegram plante dès qu'un underscore/astérisque
-    # n'est pas correctement "fermé" (fréquent dans du texte normal, URLs, noms...).
-    # Le contenu de la newsletter est déjà conçu pour rester lisible en texte brut.
-    payload = {"chat_id": channel_id, "text": texte}
+def _envoyer_message(channel_id, texte_html):
+    payload = {"chat_id": channel_id, "text": texte_html, "parse_mode": "HTML"}
 
     for tentative in range(1, MAX_TENTATIVES + 1):
         try:
@@ -85,7 +113,8 @@ def envoyer_telegram(contenu: str) -> bool:
             "l'identifiant du canal Telegram (ex. @ytilikan)."
         )
 
-    for morceau in _decouper_message(contenu):
+    contenu_html = _mettre_en_forme_telegram(contenu)
+    for morceau in _decouper_message(contenu_html):
         if not _envoyer_message(channel_id, morceau):
             return False
     return True

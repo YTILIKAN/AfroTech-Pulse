@@ -1,16 +1,14 @@
-# pipeline/summarize.py — Agent résumé LLM (Mistral) : 3 lignes, angle africain, en français
+# pipeline/summarize.py — Agent résumé LLM (Gemini) : 3 lignes, angle africain, en français
 
 import os
 import time
 
 import httpx
 from dotenv import load_dotenv
-from mistralai.client import Mistral
-from mistralai.client.errors import SDKError
 
 load_dotenv()
 
-MODEL = "mistral-small-latest"
+MODEL = "gemini-3.6-flash"
 MAX_TENTATIVES = 3
 LONGUEUR_MIN_CONTENU = 50
 
@@ -20,12 +18,16 @@ _client = None
 def get_client():
     global _client
     if _client is None:
-        cle = os.getenv("MISTRAL_API_KEY")
+        cle = os.getenv("GEMINI_API_KEY")
         if not cle:
             raise RuntimeError(
-                "MISTRAL_API_KEY manquante — copie .env.example en .env et renseigne ta clé."
+                "GEMINI_API_KEY manquante — copie .env.example en .env et renseigne ta clé."
             )
-        _client = Mistral(api_key=cle)
+        _client = httpx.Client(
+            base_url="https://generativelanguage.googleapis.com/v1beta",
+            headers={"x-goog-api-key": cle, "Content-Type": "application/json"},
+            timeout=30.0,
+        )
     return _client
 
 SYSTEM_PROMPT = """Tu es journaliste pour AfroTech Pulse, une newsletter qui couvre l'actualité de \
@@ -55,20 +57,24 @@ def summarize_article(titre: str, contenu: str) -> str | None:
         print("  [IGNORÉ] article trop court/vide pour être résumé.")
         return None
 
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
-        {"role": "user", "content": f"Titre : {titre}\n\nContenu : {contenu}"},
-    ]
+    payload = {
+        "system_instruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+        "contents": [
+            {"role": "user", "parts": [{"text": f"Titre : {titre}\n\nContenu : {contenu}"}]}
+        ],
+    }
 
     for tentative in range(1, MAX_TENTATIVES + 1):
         try:
-            response = get_client().chat.complete(model=MODEL, messages=messages)
-            return response.choices[0].message.content.strip()
-        except SDKError as e:
-            if e.status_code != 429:
-                print(f"  [ERREUR API {e.status_code}] résumé impossible, on abandonne.")
+            response = get_client().post(f"/models/{MODEL}:generateContent", json=payload)
+            if response.status_code == 200:
+                data = response.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            if response.status_code == 429 or response.status_code >= 500:
+                print(f"  [RATE LIMIT/SERVEUR {response.status_code}] tentative {tentative}/{MAX_TENTATIVES}...")
+            else:
+                print(f"  [ERREUR API {response.status_code}] résumé impossible, on abandonne. {response.text}")
                 return None
-            print(f"  [RATE LIMIT] tentative {tentative}/{MAX_TENTATIVES}...")
         except httpx.TimeoutException:
             print(f"  [TIMEOUT] tentative {tentative}/{MAX_TENTATIVES}...")
 
@@ -79,4 +85,3 @@ def summarize_article(titre: str, contenu: str) -> str | None:
 
     print(f"  [ÉCHEC] résumé abandonné après {MAX_TENTATIVES} tentatives.")
     return None
-

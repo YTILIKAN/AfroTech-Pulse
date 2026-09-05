@@ -34,19 +34,20 @@ FAKE_NEWSLETTER = (
 
 
 def fake_response(content):
-    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+    json_data = {"candidates": [{"content": {"parts": [{"text": content}]}}]}
+    return SimpleNamespace(status_code=200, text="", json=lambda: json_data)
 
 
 class FakeClient:
-    def __init__(self, complete_fn):
-        self.chat = SimpleNamespace(complete=complete_fn)
+    def __init__(self, post_fn):
+        self.post = post_fn
 
 
 def test_generer_newsletter_puis_sauvegarde_en_base_avec_statut_brouillon(monkeypatch, tmp_path):
     test_db = tmp_path / "afrotech_newsletter_integration_test.db"
     monkeypatch.setattr(database, "DB_PATH", str(test_db))
     monkeypatch.setattr(
-        writer_module, "get_client", lambda: FakeClient(lambda **kw: fake_response(FAKE_NEWSLETTER))
+        writer_module, "get_client", lambda: FakeClient(lambda url, json: fake_response(FAKE_NEWSLETTER))
     )
 
     database.creer_base()
