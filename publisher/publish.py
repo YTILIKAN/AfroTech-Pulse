@@ -37,7 +37,7 @@ def _publier_canal(newsletter_id, canal, contenu):
 
 
 def _finaliser_si_complet(newsletter_id, auteur):
-    if database.tous_canaux_publies(newsletter_id):
+    if database.tous_canaux_publies(newsletter_id, canaux=database.CANAUX_PUBLICATION):
         database.changer_statut_newsletter(newsletter_id, "publié", auteur)
         print(f"[OK] Newsletter #{newsletter_id} marquée 'publié' — tous les canaux ont réussi.")
     else:

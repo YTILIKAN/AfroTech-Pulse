@@ -12,7 +12,10 @@ TRANSITIONS_AUTORISEES = {
     "publié": set(),
 }
 
-CANAUX_PUBLICATION = ("telegram", "email")
+# "email" retiré temporairement : vérification du domaine ytilikan.org bloquée (accès DNS/IONOS
+# manquant). Le client existe déjà (publisher/email_client.py) — remettre "email" ici une fois
+# le domaine vérifié sur Resend.
+CANAUX_PUBLICATION = ("telegram",)
 STATUTS_PUBLICATION_CANAL = {"en_attente", "publié", "echec"}
 
 
@@ -629,7 +632,7 @@ def _run_tests():
             "Test 19 ECHOUE : le statut Telegram devrait être 'publié' avec 1 tentative"
         assert publications["email"] == ("echec", 3, "Timeout API Resend"), \
             "Test 19 ECHOUE : le statut Email devrait refléter l'échec et son message d'erreur"
-        assert not tous_canaux_publies(newsletter_id_3), \
+        assert not tous_canaux_publies(newsletter_id_3, canaux=("telegram", "email")), \
             "Test 19 ECHOUE : tous_canaux_publies() doit être False si un canal est en échec"
         print("Test 19 OK — enregistrer_publication_canal() trace précisément un succès partiel (Telegram OK, Email KO)")
 
@@ -649,12 +652,12 @@ def _run_tests():
 
         enregistrer_publication_canal(newsletter_id_4, "telegram", "echec", tentatives=1, erreur="Timeout")
         enregistrer_publication_canal(newsletter_id_4, "email", "echec", tentatives=1, erreur="Timeout")
-        assert not tous_canaux_publies(newsletter_id_4), \
+        assert not tous_canaux_publies(newsletter_id_4, canaux=("telegram", "email")), \
             "Test 21 ECHOUE : tous_canaux_publies() doit être False si les deux canaux ont échoué"
 
         enregistrer_publication_canal(newsletter_id_4, "telegram", "publié", tentatives=2)
         enregistrer_publication_canal(newsletter_id_4, "email", "publié", tentatives=2)
-        assert tous_canaux_publies(newsletter_id_4), \
+        assert tous_canaux_publies(newsletter_id_4, canaux=("telegram", "email")), \
             "Test 21 ECHOUE : tous_canaux_publies() doit être True une fois les deux canaux republiés avec succès"
 
         publications_apres_retry = dict(

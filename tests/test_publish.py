@@ -13,20 +13,43 @@ def _preparer_newsletter_validee(monkeypatch, tmp_path):
     return newsletter_id
 
 
-def test_telegram_ok_email_ok_marque_publie(monkeypatch, tmp_path):
+# --- Comportement actuel : Telegram est le seul canal actif (email en pause, cf. database.py) ---
+
+def test_telegram_ok_marque_publie(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
     monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: True)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: True)
 
     resultats = publish_newsletter()
 
-    assert resultats == {"telegram": True, "email": True}
+    assert resultats == {"telegram": True}
     newsletter = database.newsletter_par_id(newsletter_id)
-    assert newsletter[3] == "publié", "les deux canaux ont réussi, le statut global doit être 'publié'"
+    assert newsletter[3] == "publié", "le seul canal actif a réussi, le statut global doit être 'publié'"
 
 
-def test_telegram_ok_email_ko_statut_reste_valide(monkeypatch, tmp_path):
+def test_telegram_ko_statut_reste_valide(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
+    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: False)
+
+    resultats = publish_newsletter()
+
+    assert resultats == {"telegram": False}
+    newsletter = database.newsletter_par_id(newsletter_id)
+    assert newsletter[3] == "validé", "un échec ne doit jamais marquer statut = publié"
+
+
+def test_aucune_newsletter_validee_ne_fait_rien(monkeypatch, tmp_path):
+    test_db = tmp_path / "test.db"
+    monkeypatch.setattr(database, "DB_PATH", str(test_db))
+    database.creer_base()
+
+    assert publish_newsletter() == {}
+
+
+# --- Couverture de la logique multicanal générique (utile pour la réactivation future d'"email") ---
+
+def test_multicanal_ok_ko_statut_reste_valide(monkeypatch, tmp_path):
+    newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
+    monkeypatch.setattr(database, "CANAUX_PUBLICATION", ("telegram", "email"))
     monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: True)
     monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: False)
 
@@ -41,24 +64,9 @@ def test_telegram_ok_email_ko_statut_reste_valide(monkeypatch, tmp_path):
     assert publications["email"] == "echec"
 
 
-def test_telegram_ko_email_ok_statut_reste_valide(monkeypatch, tmp_path):
+def test_multicanal_ko_ko_statut_reste_valide(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: False)
-    monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: True)
-
-    resultats = publish_newsletter()
-
-    assert resultats == {"telegram": False, "email": True}
-    newsletter = database.newsletter_par_id(newsletter_id)
-    assert newsletter[3] == "validé", "un échec partiel ne doit jamais marquer statut = publié"
-
-    publications = {c: s for c, s, *_ in database.statuts_publication(newsletter_id)}
-    assert publications["telegram"] == "echec"
-    assert publications["email"] == "publié"
-
-
-def test_telegram_ko_email_ko_statut_reste_valide(monkeypatch, tmp_path):
-    newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
+    monkeypatch.setattr(database, "CANAUX_PUBLICATION", ("telegram", "email"))
     monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "telegram", lambda contenu: False)
     monkeypatch.setitem(publish_module.ENVOI_PAR_CANAL, "email", lambda contenu: False)
 
@@ -71,6 +79,7 @@ def test_telegram_ko_email_ko_statut_reste_valide(monkeypatch, tmp_path):
 
 def test_republication_ciblee_ne_retouche_pas_le_canal_deja_reussi(monkeypatch, tmp_path):
     newsletter_id = _preparer_newsletter_validee(monkeypatch, tmp_path)
+    monkeypatch.setattr(database, "CANAUX_PUBLICATION", ("telegram", "email"))
 
     appels_telegram = {"n": 0}
 
@@ -97,11 +106,3 @@ def test_republication_ciblee_ne_retouche_pas_le_canal_deja_reussi(monkeypatch, 
     tentatives = {c: t for c, s, t, e, h in database.statuts_publication(newsletter_id)}
     assert tentatives["email"] == 2, "republier_canal() doit incrémenter le compteur de tentatives du canal concerné"
     assert tentatives["telegram"] == 1, "le canal déjà réussi ne doit pas recevoir de tentative supplémentaire"
-
-
-def test_aucune_newsletter_validee_ne_fait_rien(monkeypatch, tmp_path):
-    test_db = tmp_path / "test.db"
-    monkeypatch.setattr(database, "DB_PATH", str(test_db))
-    database.creer_base()
-
-    assert publish_newsletter() == {}
