@@ -38,8 +38,14 @@ automatiquement chaque lundi.
 ## Livrables
 
 ### 1. Newsletter automatisée
-Publiée chaque lundi sur WhatsApp Channel, LinkedIn et le site web. Entièrement générée par un
-agent LLM (Mistral), avec une validation humaine de 15 minutes avant publication.
+Publiée chaque lundi sur le Channel Telegram Y'TILIKAN. Entièrement générée par un agent LLM
+(Google Gemini), avec une validation humaine de 15 minutes avant publication.
+
+> **Canaux de publication** : Telegram est le canal actif en production. Email (via Resend) est
+> développé et testé mais désactivé en attendant la mise en place d'une liste d'abonnés et la
+> vérification du domaine d'envoi. LinkedIn et le site web sont des évolutions futures — le scope
+> initial (WhatsApp Channel + LinkedIn) a été révisé suite à des blocages administratifs
+> (vérification d'entreprise Meta/LinkedIn).
 
 ### 2. Dashboard public interactif
 Visualisation des tendances IA en Afrique en temps réel :
@@ -71,17 +77,17 @@ CHAQUE JOUR (6h UTC automatique)
       (même sujet, mots différents) sont supprimés
 
   Étape 4 — Résumé LLM
-  └── Mistral résume chaque article en 3 lignes en français
+  └── Gemini résume chaque article en 3 lignes en français
       avec angle africain obligatoire
 
 CHAQUE DIMANCHE SOIR (automatique)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Étape 5 — Sélection éditoriale
-  └── Mistral sélectionne les 5-7 meilleurs articles de la semaine
+  └── Sélection des 5-7 meilleurs articles de la semaine
       selon : impact Afrique, nouveauté, diversité géographique
 
   Étape 6 — Rédaction newsletter
-  └── Mistral rédige la newsletter complète
+  └── Gemini rédige la newsletter complète
       (intro édito + articles résumés + conclusion)
 
 CHAQUE LUNDI MATIN (manuel, 15 min)
@@ -93,7 +99,8 @@ CHAQUE LUNDI MATIN (manuel, 15 min)
 CHAQUE LUNDI 9H (automatique après validation)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   Étape 8 — Publication
-  └── Envoi simultané sur WhatsApp Channel + LinkedIn + site web
+  └── Envoi sur le Channel Telegram Y'TILIKAN (canal actif)
+      Email, LinkedIn et site web : en évolution
 
 EN CONTINU
 ━━━━━━━━━━
@@ -117,20 +124,23 @@ AfroTech-Pulse/
 ├── pipeline/
 │   ├── filter.py            ← Score la pertinence africaine de chaque article
 │   ├── dedup.py             ← Supprime les doublons
-│   ├── summarize.py         ← Résume chaque article via Mistral (3 lignes, français)
+│   ├── summarize.py         ← Résume chaque article via Gemini (3 lignes, français)
 │   └── editor.py            ← Sélectionne les 5-7 meilleurs articles de la semaine
 │
 ├── newsletter/
-│   └── writer.py            ← Rédige la newsletter complète via Mistral
+│   ├── writer.py            ← Rédige la newsletter complète via Gemini
+│   └── run_writer.py        ← Chaîne sélection éditoriale + rédaction, sauvegarde en brouillon
 │
 ├── dashboard/
 │   └── app.py               ← Interface Streamlit publique (carte + graphiques)
 │
 ├── validation/
-│   └── review_ui.py         ← Interface de validation humaine (lundi matin, 15 min)
+│   └── review_ui.py         ← Validation humaine + panneau de publication assistée
 │
 ├── publisher/
-│   └── publish.py           ← Publie sur WhatsApp + LinkedIn + site web
+│   ├── publish.py           ← Orchestrateur multicanal (marquage newsletters.statut)
+│   ├── telegram_client.py   ← Canal actif — Telegram Bot API
+│   └── email_client.py      ← En évolution — Resend (désactivé, domaine à vérifier)
 │
 ├── archive/
 │   └── search.py            ← Moteur de recherche sur toutes les éditions passées
@@ -156,11 +166,12 @@ AfroTech-Pulse/
 | Collecte | feedparser | Lecture des flux RSS |
 | Collecte | requests + BeautifulSoup4 | Scraping des sites web |
 | Traitement | sentence-transformers | Déduplication par similarité sémantique |
-| Intelligence | Mistral API (mistral-small-latest) | Résumés + sélection + rédaction newsletter |
+| Intelligence | Google Gemini API (gemini-3.6-flash) | Résumés + sélection + rédaction newsletter |
 | Stockage | SQLite | Base de données locale des articles |
 | Dashboard | Streamlit + Plotly | Interface publique et visualisations |
 | Automatisation | GitHub Actions | Cron quotidien gratuit (2000 min/mois) |
-| Publication | WhatsApp Business API + LinkedIn API | Distribution de la newsletter |
+| Publication | Telegram Bot API | Distribution de la newsletter (canal actif) |
+| Publication (évolution) | Resend (email) + LinkedIn API | Développés/testés, désactivés en attendant liste d'abonnés / entité légale vérifiée |
 | Archive | Whoosh | Moteur de recherche full-text |
 | Configuration | python-dotenv | Lecture sécurisée des clés API |
 
@@ -195,11 +206,12 @@ Copier `.env.example` en `.env` et remplir chaque valeur.
 
 | Variable | Description | Où l'obtenir |
 |---|---|---|
-| `MISTRAL_API_KEY` | Clé API Mistral pour les résumés LLM | console.mistral.ai |
-| `WHATSAPP_TOKEN` | Token WhatsApp Business API | Meta for Developers |
-| `LINKEDIN_TOKEN` | Token LinkedIn API | LinkedIn Developers |
+| `GEMINI_API_KEY` | Clé API Google Gemini pour les résumés/rédaction LLM | aistudio.google.com (gratuit, sans carte bancaire) |
+| `TELEGRAM_BOT_TOKEN` | Token du bot Telegram qui publie sur le canal | @BotFather sur Telegram |
+| `TELEGRAM_CHANNEL_ID` | Identifiant du canal Telegram (ex. `@ytilikan`) | Nom d'utilisateur choisi à la création du canal |
 | `TWITTER_BEARER_TOKEN` | Token Twitter API v2 (lecture seule) | developer.twitter.com |
-| `RESEND_API_KEY` | Clé Resend pour les emails | resend.com |
+| `RESEND_API_KEY` | Clé Resend pour les emails *(en évolution, pas encore actif)* | resend.com |
+| `RESEND_FROM_EMAIL` | Adresse d'expédition *(en évolution, domaine à vérifier)* | Domaine vérifié dans Resend |
 
 
 ---
