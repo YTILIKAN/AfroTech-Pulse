@@ -2,7 +2,7 @@ feedparser
 requests
 beautifulsoup4
 sentence-transformers
-mistralai
+httpx
 streamlit
 plotly
 python-dotenv

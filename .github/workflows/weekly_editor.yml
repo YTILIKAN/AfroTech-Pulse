@@ -1,15 +1,15 @@
-name: Daily Scrape
+name: Weekly Editor Selection
 
 on:
   schedule:
-    - cron: "0 6 * * *"
+    - cron: "0 20 * * 0"
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  scrape:
+  select:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,16 +24,13 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run orchestrator
-        run: python orchestrator.py
-
-      - name: Run summarizer
+      - name: Run editor selection and newsletter writing
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python -m pipeline.run_summarize
+        run: python -m newsletter.run_writer
 
       - name: Sauvegarder la base de donnees
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "Collecte + resume automatique du ${{ github.run_started_at }}"
+          commit_message: "Selection editoriale + redaction automatique du ${{ github.run_started_at }}"
           file_pattern: "afrotech.db"

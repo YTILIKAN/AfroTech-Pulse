@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "total": 34,
-    "last_updated": "2026-06-30 (v3)",
+    "total": 50,
+    "last_updated": "2026-07-25 (v4)",
     "description": "Sources RSS actives surveillées par AfroTech Pulse (type: rss + active: true)"
   },
   "sources": [
@@ -705,6 +705,166 @@
       "url": "https://feeds.bbci.co.uk/news/world/africa/rss.xml",
       "frequency": "quotidien",
       "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "techmoran",
+      "name": "TechMoran",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://techmoran.com/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "tech-ish",
+      "name": "Tech-ish",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://tech-ish.com/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "techarena-kenya",
+      "name": "TechArena Kenya",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://techarena.co.ke/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "techtrends-kenya",
+      "name": "TechTrends Kenya",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://techtrendske.co.ke/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "itpulse-nigeria",
+      "name": "ITPulse Nigeria",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://itpulse.com.ng/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "silicon-africa",
+      "name": "Silicon Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://siliconafrica.org/feed/",
+      "frequency": "hebdo",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "techbuild-africa",
+      "name": "Tech Build Africa",
+      "category": "Tech Afrique",
+      "type": "rss",
+      "url": "https://techbuild.africa/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "techtrends-africa",
+      "name": "Techtrends Africa",
+      "category": "Startups",
+      "type": "rss",
+      "url": "https://techtrends.africa/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "growth-strategies-101",
+      "name": "Growth Strategies 101",
+      "category": "Startups",
+      "type": "rss",
+      "url": "https://growthstrategies101.com/feed/",
+      "frequency": "hebdo",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "techeconomy-nigeria",
+      "name": "Techeconomy Nigeria",
+      "category": "Fintech",
+      "type": "rss",
+      "url": "https://techeconomy.ng/feed/",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "business-post-nigeria",
+      "name": "Business Post Nigeria",
+      "category": "Fintech",
+      "type": "rss",
+      "url": "https://businesspost.ng/feed/",
+      "frequency": "quotidien",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "business-daily-africa",
+      "name": "Business Daily Africa",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.businessdailyafrica.com/service/rss/bd/1939136/feed.rss",
+      "frequency": "quotidien",
+      "relevance": "haute",
+      "active": true
+    },
+    {
+      "id": "africanews-business",
+      "name": "Africanews Business",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://www.africanews.com/feed/rss?themes=business",
+      "frequency": "quotidien",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "nairobi-wire-tech",
+      "name": "Nairobi Wire Tech",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://nairobiwire.com/category/tech/feed",
+      "frequency": "quotidien",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "sharp-daily-tech",
+      "name": "Sharp Daily Tech",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://thesharpdaily.com/category/technology/feed/",
+      "frequency": "hebdo",
+      "relevance": "moyenne",
+      "active": true
+    },
+    {
+      "id": "east-african-business-times",
+      "name": "East African Business Times",
+      "category": "Grands médias",
+      "type": "rss",
+      "url": "https://eabusinesstimes.com/feed/",
+      "frequency": "hebdo",
+      "relevance": "moyenne",
       "active": true
     }
   ]
