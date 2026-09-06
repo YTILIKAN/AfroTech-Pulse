@@ -17,6 +17,9 @@ build/
 *.sqlite3
 # afrotech.db est volontairement suivi par Git (persistance cron)
 
+# Index Whoosh de l'archive — binaire, régénérable depuis la base par indexer_editions()
+archive/index_whoosh/
+
 # Environnements virtuels
 venv/
 .venv/
