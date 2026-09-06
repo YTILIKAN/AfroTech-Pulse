@@ -1,28 +1,25 @@
 from types import SimpleNamespace
 
 import httpx
-from mistralai.client.errors import SDKError
 
 import newsletter.writer as writer_module
 from newsletter.writer import compter_articles, generer_newsletter, structure_respectee
 
 
-def fake_response(content):
-    return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=content))])
+def fake_response(status_code, texte_genere=None, text=""):
+    json_data = None
+    if texte_genere is not None:
+        json_data = {"candidates": [{"content": {"parts": [{"text": texte_genere}]}}]}
+    return SimpleNamespace(status_code=status_code, text=text, json=lambda: json_data)
 
 
 class FakeClient:
-    def __init__(self, complete_fn):
-        self.chat = SimpleNamespace(complete=complete_fn)
+    def __init__(self, post_fn):
+        self.post = post_fn
 
 
-def echoue_si_appelee(**kwargs):
+def echoue_si_appelee(url, json):
     raise AssertionError("l'API ne doit pas être appelée sans article à traiter")
-
-
-def erreur_sdk(status_code):
-    reponse = httpx.Response(status_code=status_code, request=httpx.Request("POST", "https://api.mistral.ai"))
-    return SDKError("erreur", reponse)
 
 
 def fabriquer_articles(n):
@@ -54,7 +51,7 @@ def fabriquer_newsletter_bien_formee(n):
 def test_structure_respectee_avec_5_articles(monkeypatch):
     newsletter = fabriquer_newsletter_bien_formee(5)
     monkeypatch.setattr(
-        writer_module, "get_client", lambda: FakeClient(lambda **kw: fake_response(newsletter))
+        writer_module, "get_client", lambda: FakeClient(lambda url, json: fake_response(200, newsletter))
     )
 
     resultat = generer_newsletter(fabriquer_articles(5))
@@ -67,7 +64,7 @@ def test_structure_respectee_avec_5_articles(monkeypatch):
 def test_structure_respectee_avec_7_articles(monkeypatch):
     newsletter = fabriquer_newsletter_bien_formee(7)
     monkeypatch.setattr(
-        writer_module, "get_client", lambda: FakeClient(lambda **kw: fake_response(newsletter))
+        writer_module, "get_client", lambda: FakeClient(lambda url, json: fake_response(200, newsletter))
     )
 
     resultat = generer_newsletter(fabriquer_articles(7))
@@ -94,7 +91,7 @@ def test_structure_non_respectee_si_nombre_articles_incorrect():
 def test_generer_newsletter_retourne_le_texte_meme_si_structure_incorrecte(monkeypatch):
     newsletter_incomplete = fabriquer_newsletter_bien_formee(4)
     monkeypatch.setattr(
-        writer_module, "get_client", lambda: FakeClient(lambda **kw: fake_response(newsletter_incomplete))
+        writer_module, "get_client", lambda: FakeClient(lambda url, json: fake_response(200, newsletter_incomplete))
     )
 
     resultat = generer_newsletter(fabriquer_articles(5))
@@ -117,13 +114,13 @@ def test_generer_newsletter_gere_erreur_api_avec_retry(monkeypatch):
 
     appels = {"n": 0}
 
-    def complete_fn(**kwargs):
+    def post_fn(url, json):
         appels["n"] += 1
         if appels["n"] < 3:
-            raise erreur_sdk(429)
-        return fake_response(newsletter)
+            return fake_response(429)
+        return fake_response(200, newsletter)
 
-    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(complete_fn))
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(post_fn))
 
     resultat = generer_newsletter(fabriquer_articles(3))
 
@@ -137,13 +134,13 @@ def test_generer_newsletter_gere_timeout_avec_retry(monkeypatch):
 
     appels = {"n": 0}
 
-    def complete_fn(**kwargs):
+    def post_fn(url, json):
         appels["n"] += 1
         if appels["n"] < 2:
             raise httpx.TimeoutException("timeout")
-        return fake_response(newsletter)
+        return fake_response(200, newsletter)
 
-    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(complete_fn))
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(post_fn))
 
     resultat = generer_newsletter(fabriquer_articles(2))
 
@@ -156,14 +153,44 @@ def test_erreur_api_non_retryable_abandonne_immediatement(monkeypatch):
 
     appels = {"n": 0}
 
-    def complete_fn(**kwargs):
+    def post_fn(url, json):
         appels["n"] += 1
-        raise erreur_sdk(500)
+        return fake_response(400, text="Bad Request")
 
-    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(complete_fn))
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(post_fn))
 
     assert generer_newsletter(fabriquer_articles(3)) is None
     assert appels["n"] == 1
+
+
+def test_erreur_serveur_est_reessayee(monkeypatch):
+    monkeypatch.setattr(writer_module.time, "sleep", lambda _: None)
+    newsletter = fabriquer_newsletter_bien_formee(3)
+
+    appels = {"n": 0}
+
+    def post_fn(url, json):
+        appels["n"] += 1
+        if appels["n"] < 2:
+            return fake_response(500)
+        return fake_response(200, newsletter)
+
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(post_fn))
+
+    assert generer_newsletter(fabriquer_articles(3)) == newsletter
+    assert appels["n"] == 2
+
+
+def test_generer_newsletter_reponse_sans_candidats_ne_plante_pas(monkeypatch):
+    """Même garde-fou que pipeline/summarize.py : une réponse 200 avec 'candidates' vide
+    (filtre de sécurité Gemini) ne doit jamais faire planter avec un IndexError."""
+
+    def post_fn(url, json):
+        return SimpleNamespace(status_code=200, text="", json=lambda: {"candidates": []})
+
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(post_fn))
+
+    assert generer_newsletter(fabriquer_articles(3)) is None
 
 
 def test_abandonne_apres_max_tentatives_si_rate_limit_persiste(monkeypatch):
@@ -171,11 +198,11 @@ def test_abandonne_apres_max_tentatives_si_rate_limit_persiste(monkeypatch):
 
     appels = {"n": 0}
 
-    def complete_fn(**kwargs):
+    def post_fn(url, json):
         appels["n"] += 1
-        raise erreur_sdk(429)
+        return fake_response(429)
 
-    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(complete_fn))
+    monkeypatch.setattr(writer_module, "get_client", lambda: FakeClient(post_fn))
 
     assert generer_newsletter(fabriquer_articles(3)) is None
     assert appels["n"] == writer_module.MAX_TENTATIVES

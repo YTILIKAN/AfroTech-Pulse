@@ -12,6 +12,12 @@ TRANSITIONS_AUTORISEES = {
     "publié": set(),
 }
 
+# "email" retiré temporairement : vérification du domaine ytilikan.org bloquée (accès DNS/IONOS
+# manquant). Le client existe déjà (publisher/email_client.py) — remettre "email" ici une fois
+# le domaine vérifié sur Resend.
+CANAUX_PUBLICATION = ("telegram",)
+STATUTS_PUBLICATION_CANAL = {"en_attente", "publié", "echec"}
+
 
 def creer_base():
     conn = sqlite3.connect(DB_PATH)
@@ -62,6 +68,29 @@ def creer_base():
                 auteur          TEXT NOT NULL,
                 horodatage      TEXT NOT NULL,
                 FOREIGN KEY (newsletter_id) REFERENCES newsletters(id)
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS newsletters_publications (
+                id              INTEGER PRIMARY KEY AUTOINCREMENT,
+                newsletter_id   INTEGER NOT NULL,
+                canal           TEXT NOT NULL,
+                statut          TEXT NOT NULL DEFAULT 'en_attente',
+                tentatives      INTEGER NOT NULL DEFAULT 0,
+                erreur          TEXT,
+                horodatage      TEXT NOT NULL,
+                FOREIGN KEY (newsletter_id) REFERENCES newsletters(id),
+                UNIQUE (newsletter_id, canal)
+            )
+        """)
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS abonnes_email (
+                id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+                email               TEXT NOT NULL UNIQUE,
+                statut              TEXT NOT NULL DEFAULT 'actif',
+                date_inscription    TEXT NOT NULL
             )
         """)
         conn.commit()
@@ -172,6 +201,128 @@ def derniere_newsletter_brouillon():
             LIMIT 1
             """
         ).fetchone()
+    finally:
+        conn.close()
+
+
+def derniere_newsletter_validee():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return conn.execute(
+            """
+            SELECT id, contenu, nb_articles, statut, date_generation
+            FROM newsletters
+            WHERE statut = 'validé'
+            ORDER BY date_generation DESC
+            LIMIT 1
+            """
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def newsletter_par_id(newsletter_id):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return conn.execute(
+            """
+            SELECT id, contenu, nb_articles, statut, date_generation
+            FROM newsletters
+            WHERE id = ?
+            """,
+            (newsletter_id,),
+        ).fetchone()
+    finally:
+        conn.close()
+
+
+def enregistrer_publication_canal(newsletter_id, canal, statut, tentatives, erreur=None):
+    if statut not in STATUTS_PUBLICATION_CANAL:
+        raise ValueError(f"Statut de publication inconnu : {statut!r}")
+
+    horodatage = datetime.now(timezone.utc).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            """
+            INSERT INTO newsletters_publications
+                (newsletter_id, canal, statut, tentatives, erreur, horodatage)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT (newsletter_id, canal) DO UPDATE SET
+                statut = excluded.statut,
+                tentatives = excluded.tentatives,
+                erreur = excluded.erreur,
+                horodatage = excluded.horodatage
+            """,
+            (newsletter_id, canal, statut, tentatives, erreur, horodatage),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def statuts_publication(newsletter_id):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return conn.execute(
+            """
+            SELECT canal, statut, tentatives, erreur, horodatage
+            FROM newsletters_publications
+            WHERE newsletter_id = ?
+            ORDER BY canal
+            """,
+            (newsletter_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def tous_canaux_publies(newsletter_id, canaux=CANAUX_PUBLICATION):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        rows = conn.execute(
+            "SELECT canal, statut FROM newsletters_publications WHERE newsletter_id = ?",
+            (newsletter_id,),
+        ).fetchall()
+    finally:
+        conn.close()
+    statuts = dict(rows)
+    return all(statuts.get(canal) == "publié" for canal in canaux)
+
+
+def ajouter_abonne_email(email):
+    date_inscription = datetime.now(timezone.utc).isoformat()
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            """
+            INSERT OR IGNORE INTO abonnes_email (email, statut, date_inscription)
+            VALUES (?, 'actif', ?)
+            """,
+            (email, date_inscription),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def lister_abonnes_actifs():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return [
+            row[0] for row in conn.execute(
+                "SELECT email FROM abonnes_email WHERE statut = 'actif' ORDER BY date_inscription"
+            )
+        ]
+    finally:
+        conn.close()
+
+
+def desabonner_email(email):
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute("UPDATE abonnes_email SET statut = 'inactif' WHERE email = ?", (email,))
+        conn.commit()
     finally:
         conn.close()
 
@@ -446,6 +597,89 @@ def _run_tests():
         assert derniere[0] == newsletter_id_2, \
             "Test 16 ECHOUE : derniere_newsletter_brouillon() ne retourne pas la bonne newsletter"
         print("Test 16 OK — derniere_newsletter_brouillon() retourne la dernière newsletter en statut brouillon")
+
+        newsletter_id_3 = sauvegarder_newsletter("# AfroTech Pulse\n\nBrouillon 3.", nb_articles=4)
+        changer_statut_newsletter(newsletter_id_3, "en_revue", "Alice")
+        changer_statut_newsletter(newsletter_id_3, "validé", "Alice")
+
+        derniere_validee = derniere_newsletter_validee()
+        assert derniere_validee is not None, "Test 17 ECHOUE : une newsletter validée devrait être trouvée"
+        assert derniere_validee[0] == newsletter_id_3, \
+            "Test 17 ECHOUE : derniere_newsletter_validee() ne retourne pas la bonne newsletter"
+        print("Test 17 OK — derniere_newsletter_validee() retourne la dernière newsletter en statut validé")
+
+        par_id = newsletter_par_id(newsletter_id_3)
+        assert par_id is not None and par_id[0] == newsletter_id_3, \
+            "Test 17b ECHOUE : newsletter_par_id() devrait retrouver la newsletter par son id"
+        assert par_id[1] == "# AfroTech Pulse\n\nBrouillon 3.", \
+            "Test 17b ECHOUE : newsletter_par_id() ne retourne pas le bon contenu"
+        print("Test 17b OK — newsletter_par_id() retrouve une newsletter par son id quel que soit son statut")
+
+        assert statuts_publication(newsletter_id_3) == [], \
+            "Test 18 ECHOUE : aucune publication ne devrait exister avant tout envoi"
+        assert not tous_canaux_publies(newsletter_id_3), \
+            "Test 18 ECHOUE : tous_canaux_publies() devrait être False sans aucune publication enregistrée"
+        print("Test 18 OK — aucune publication enregistrée par défaut pour une newsletter validée")
+
+        enregistrer_publication_canal(newsletter_id_3, "telegram", "publié", tentatives=1)
+        enregistrer_publication_canal(newsletter_id_3, "email", "echec", tentatives=3, erreur="Timeout API Resend")
+
+        publications = dict(
+            (canal, (statut, tentatives, erreur))
+            for canal, statut, tentatives, erreur, _ in statuts_publication(newsletter_id_3)
+        )
+        assert publications["telegram"] == ("publié", 1, None), \
+            "Test 19 ECHOUE : le statut Telegram devrait être 'publié' avec 1 tentative"
+        assert publications["email"] == ("echec", 3, "Timeout API Resend"), \
+            "Test 19 ECHOUE : le statut Email devrait refléter l'échec et son message d'erreur"
+        assert not tous_canaux_publies(newsletter_id_3, canaux=("telegram", "email")), \
+            "Test 19 ECHOUE : tous_canaux_publies() doit être False si un canal est en échec"
+        print("Test 19 OK — enregistrer_publication_canal() trace précisément un succès partiel (Telegram OK, Email KO)")
+
+        changer_statut_newsletter(newsletter_id_3, "publié", "Alice")
+        conn = sqlite3.connect(test_db)
+        row = conn.execute(
+            "SELECT statut FROM newsletters WHERE id = ?", (newsletter_id_3,)
+        ).fetchone()
+        conn.close()
+        assert row[0] == "publié", "Test 20 ECHOUE : le statut global aurait dû passer à 'publié'"
+        print("Test 20 OK — validé → publié reste une transition légale : c'est à publisher/publish.py de "
+              "n'appeler changer_statut_newsletter() vers 'publié' que lorsque tous_canaux_publies() est vrai")
+
+        newsletter_id_4 = sauvegarder_newsletter("# AfroTech Pulse\n\nBrouillon 4.", nb_articles=2)
+        changer_statut_newsletter(newsletter_id_4, "en_revue", "Alice")
+        changer_statut_newsletter(newsletter_id_4, "validé", "Alice")
+
+        enregistrer_publication_canal(newsletter_id_4, "telegram", "echec", tentatives=1, erreur="Timeout")
+        enregistrer_publication_canal(newsletter_id_4, "email", "echec", tentatives=1, erreur="Timeout")
+        assert not tous_canaux_publies(newsletter_id_4, canaux=("telegram", "email")), \
+            "Test 21 ECHOUE : tous_canaux_publies() doit être False si les deux canaux ont échoué"
+
+        enregistrer_publication_canal(newsletter_id_4, "telegram", "publié", tentatives=2)
+        enregistrer_publication_canal(newsletter_id_4, "email", "publié", tentatives=2)
+        assert tous_canaux_publies(newsletter_id_4, canaux=("telegram", "email")), \
+            "Test 21 ECHOUE : tous_canaux_publies() doit être True une fois les deux canaux republiés avec succès"
+
+        publications_apres_retry = dict(
+            (canal, tentatives) for canal, _, tentatives, _, _ in statuts_publication(newsletter_id_4)
+        )
+        assert publications_apres_retry == {"telegram": 2, "email": 2}, \
+            "Test 21 ECHOUE : un nouvel appel à enregistrer_publication_canal() doit mettre à jour la ligne existante (upsert), pas en créer une nouvelle"
+        print("Test 21 OK — republier un canal en échec met à jour sa ligne (upsert) sans dupliquer, et tous_canaux_publies() ne devient True qu'après succès des deux canaux")
+
+        assert lister_abonnes_actifs() == [], "Test 22 ECHOUE : aucun abonné ne devrait exister par défaut"
+
+        ajouter_abonne_email("test1@exemple.com")
+        ajouter_abonne_email("test2@exemple.com")
+        ajouter_abonne_email("test1@exemple.com")
+        assert lister_abonnes_actifs() == ["test1@exemple.com", "test2@exemple.com"], \
+            "Test 22 ECHOUE : ajouter_abonne_email() doit ignorer les doublons et lister les actifs par ordre d'inscription"
+        print("Test 22 OK — ajouter_abonne_email() ajoute sans dupliquer, lister_abonnes_actifs() retourne les emails actifs")
+
+        desabonner_email("test1@exemple.com")
+        assert lister_abonnes_actifs() == ["test2@exemple.com"], \
+            "Test 23 ECHOUE : desabonner_email() doit retirer l'email de la liste des actifs"
+        print("Test 23 OK — desabonner_email() retire bien l'abonné de la liste des actifs")
 
         print("\nTous les tests sont passés.")
     finally:

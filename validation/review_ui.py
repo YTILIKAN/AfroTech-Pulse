@@ -8,6 +8,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import streamlit as st
 
 import database
+from publisher.publish import publish_newsletter
 
 STATUTS_STYLE = {
     "brouillon": ("gray", "📝"),
@@ -17,17 +18,82 @@ STATUTS_STYLE = {
     "publié": ("violet", "🚀"),
 }
 
+
+def _afficher_panneau_publication(newsletter):
+    newsletter_id, contenu, nb_articles, statut, date_generation = newsletter
+
+    st.title("🚀 Publication de la newsletter")
+    st.subheader(f"Newsletter #{newsletter_id} — validée, en attente de publication")
+    st.caption(f"Canaux actifs : {', '.join(database.CANAUX_PUBLICATION)}")
+
+    with st.expander("Aperçu du contenu à publier", expanded=True):
+        st.markdown(contenu)
+
+    st.divider()
+    st.markdown("### Checklist avant publication")
+    check_contenu = st.checkbox("J'ai relu le contenu ci-dessus et il est correct")
+    check_canaux = st.checkbox(
+        f"Je confirme que les canaux actifs ({', '.join(database.CANAUX_PUBLICATION)}) sont bien ceux prévus"
+    )
+    check_conscience = st.checkbox(
+        "Je comprends qu'un clic sur \"Publier\" envoie immédiatement un message réel, "
+        "visible par les abonnés"
+    )
+
+    auteur_publication = st.text_input("Ton prénom (traçabilité)", key="auteur_publication")
+
+    tout_coche = check_contenu and check_canaux and check_conscience
+    publier = st.button(
+        "🚀 Publier maintenant",
+        type="primary",
+        disabled=not (tout_coche and auteur_publication.strip()),
+        use_container_width=True,
+    )
+
+    if not tout_coche:
+        st.caption("Coche les 3 cases et renseigne ton prénom pour activer la publication.")
+
+    if publier:
+        with st.spinner("Publication en cours..."):
+            resultats = publish_newsletter(auteur=auteur_publication)
+
+        for canal, succes in resultats.items():
+            if succes:
+                st.success(f"✅ {canal.capitalize()} : publié avec succès.")
+            else:
+                st.error(f"❌ {canal.capitalize()} : échec — voir les logs, à republier individuellement.")
+
+        newsletter_apres = database.newsletter_par_id(newsletter_id)
+        if newsletter_apres[3] == "publié":
+            st.balloons()
+            st.success(
+                "Publication complète. Va vérifier manuellement sur le(s) canal(aux) "
+                "que le message est bien visible avant de clore le suivi."
+            )
+        else:
+            st.warning(
+                "Publication partielle ou échouée — le statut reste 'validé'. "
+                "Consulte le détail par canal ci-dessus avant de republier."
+            )
+
+
 st.set_page_config(page_title="AfroTech Pulse — Validation", page_icon="📰")
 
 database.creer_base()
 
 newsletter = database.derniere_newsletter_brouillon()
 
-st.title("📰 Validation de la newsletter")
-
 if newsletter is None:
-    st.info("Aucune newsletter en attente de validation (statut 'brouillon').")
-    st.stop()
+    newsletter_validee = database.derniere_newsletter_validee()
+    if newsletter_validee is None:
+        st.title("📰 Validation de la newsletter")
+        st.info("Aucune newsletter en attente de validation ou de publication.")
+        st.stop()
+    else:
+        _afficher_panneau_publication(newsletter_validee)
+        st.stop()
+
+st.title("📰 Validation de la newsletter")
 
 newsletter_id, contenu, nb_articles, statut, date_generation = newsletter
 couleur, icone = STATUTS_STYLE.get(statut, ("gray", "📄"))
