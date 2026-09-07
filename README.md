@@ -17,6 +17,7 @@ Conçu pour informer, construit pour durer, publié chaque semaine sans exceptio
 - [Livrables](#livrables)
 - [Architecture du pipeline](#architecture-du-pipeline)
 - [Cycle horaire complet](#cycle-horaire-complet)
+- [Stabilité et limites connues](#stabilité-et-limites-connues)
 - [Structure du projet](#structure-du-projet)
 - [Stack technique](#stack-technique)
 - [Installation](#installation)
@@ -152,6 +153,52 @@ elles glissent d'1 h en hiver, GitHub Actions ne gérant pas le changement d'heu
 | `monday_publish.yml`  | `0 13 * * 1` | lundi 09h / 08h           | Publication auto de la newsletter validée |
 
 Intervention humaine : **~15 min le lundi** (relecture + clic Valider + `git push` de `afrotech.db`).
+
+---
+
+## Stabilité et limites connues
+
+`tests/test_pipeline_stability.py` rejoue 4 cycles hebdomadaires consécutifs sur la même
+base (scrape → résumé → sélection/rédaction → validation → publication), en injectant à
+chaque semaine une panne réellement rencontrée en production : source RSS qui timeout,
+coupure réseau, erreur inattendue du scraper, rate limit/timeout Gemini, échec Telegram
+transitoire puis prolongé. `tests/test_scraper_stability.py` couvre isolément la
+résilience de `scrape_rss()` à chacune de ces pannes réseau.
+
+**Ce que ces tests garantissent :**
+- une source, un résumé ou une publication en échec n'interrompt jamais le reste du
+  pipeline (chaque étage isole ses erreurs et continue) ;
+- toute erreur rencontrée est loguée (`[TIMEOUT]`, `[ERREUR RÉSEAU]`, `[RATE LIMIT/SERVEUR …]`,
+  `[ÉCHEC] …`) — aucune ne passe silencieusement ;
+- aucune fuite de ressources sur la durée : connexions SQLite toutes refermées, un seul
+  client HTTP Telegram ouvert (et refermé) par tentative de publication.
+
+**Correctif issu de ce travail de stabilisation :** `publisher/telegram_client.py` ouvrait
+un nouveau client HTTP à chaque tentative d'envoi (y compris chaque retry) sans jamais le
+fermer — une fuite de connexion par retry sur les publications en échec transitoire. Un
+seul client est maintenant ouvert par appel à `envoyer_telegram()`, réutilisé pour tous les
+morceaux/tentatives, et explicitement refermé à la fin (cf. `tests/test_telegram_client.py::test_un_seul_client_ouvert_puis_ferme_meme_avec_retries`).
+
+**Limites connues (non résolues, par conception ou par contrainte de ressources) :**
+- **Dédup intra-batch uniquement** — `orchestrator.py` déduplique les articles collectés le
+  même jour entre eux, mais ne compare jamais un nouvel article contre ceux déjà en base :
+  un même article republié par une source des semaines plus tard peut réapparaître sous une
+  URL différente.
+- **Quotas gratuits externes** — Gemini (résumé + rédaction) et l'API Bot Telegram tournent
+  sur des paliers gratuits avec un rate limit par minute non documenté publiquement de façon
+  stable ; le pipeline absorbe les 429/5xx transitoires via 3 tentatives et un backoff
+  exponentiel (2s/4s/8s) par appel, mais une panne qui dépasse cette fenêtre fait échouer
+  l'article ou la publication du jour (pas de file d'attente ni de retry inter-jours).
+- **Panne prolongée (> quelques minutes)** — un service externe indisponible plus longtemps
+  que les 3 tentatives ne bloque jamais le run (celui-ci se termine et alerte l'équipe via
+  `notifier.py`), mais rien ne retente automatiquement le lendemain : l'article reste sans
+  résumé, ou la newsletter validée reste au statut `validé` jusqu'à une republication
+  manuelle (`streamlit run validation/review_ui.py`).
+- **Pas de circuit breaker inter-runs** — chaque exécution de `daily_scrape.yml` retente
+  toutes les sources actives depuis zéro, y compris celles en échec depuis plusieurs jours ;
+  c'est simple et sans état à maintenir, mais ça veut dire qu'une source durablement morte
+  continue de consommer un appel réseau (10s de timeout) à chaque run tant qu'elle n'est pas
+  désactivée manuellement dans `data/sources.json`.
 
 ---
 
