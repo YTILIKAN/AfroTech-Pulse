@@ -20,6 +20,13 @@ STATUTS_PUBLICATION_CANAL = {"en_attente", "publié", "echec"}
 
 
 def creer_base():
+    """Crée les tables si elles n'existent pas et applique les migrations de colonnes.
+
+    Idempotent : peut être rejoué sur une base existante. Les colonnes ajoutées après coup
+    (`score_pertinence`, `resume`, `score_editorial`, `selectionne`) sont vérifiées via
+    `PRAGMA table_info` puis ajoutées si absentes, ce qui permet de faire évoluer le schéma
+    sans migration manuelle ni perte de données.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute("""
@@ -99,6 +106,12 @@ def creer_base():
 
 
 def sauvegarder_article(titre, url, source_id, date_pub, contenu, score_pertinence):
+    """Insère un article collecté, sans écraser un article déjà présent.
+
+    L'unicité repose sur `url` : un `INSERT OR IGNORE` laisse intacte la ligne existante,
+    si bien qu'un article recollecté ne perd ni son résumé ni son score éditorial.
+    `date_collecte` est horodatée automatiquement en UTC.
+    """
     date_collecte = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -116,6 +129,10 @@ def sauvegarder_article(titre, url, source_id, date_pub, contenu, score_pertinen
 
 
 def sauvegarder_resume(url, resume):
+    """Enregistre le résumé LLM d'un article, identifié par son url.
+
+    Ne touche qu'à la colonne `resume` : les autres champs de l'article sont préservés.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
@@ -128,6 +145,11 @@ def sauvegarder_resume(url, resume):
 
 
 def sauvegarder_newsletter(contenu, nb_articles, statut="brouillon"):
+    """Insère une newsletter et retourne son identifiant.
+
+    Le statut par défaut est `brouillon`, seul point d'entrée légal de la machine à états
+    (cf. TRANSITIONS_AUTORISEES). `date_generation` est horodatée automatiquement en UTC.
+    """
     date_generation = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -145,6 +167,15 @@ def sauvegarder_newsletter(contenu, nb_articles, statut="brouillon"):
 
 
 def changer_statut_newsletter(newsletter_id, nouveau_statut, auteur):
+    """Applique une transition de statut et l'historise.
+
+    La transition est validée contre TRANSITIONS_AUTORISEES : toute transition non prévue
+    lève une ValueError sans rien modifier. Chaque transition appliquée est enregistrée dans
+    `newsletters_historique` avec son auteur et son horodatage, dans la même transaction que
+    la mise à jour du statut.
+
+    Lève ValueError si la newsletter est introuvable ou si la transition est interdite.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         row = conn.execute(
@@ -178,6 +209,7 @@ def changer_statut_newsletter(newsletter_id, nouveau_statut, auteur):
 
 
 def modifier_contenu_newsletter(newsletter_id, nouveau_contenu):
+    """Remplace le contenu d'une newsletter sans toucher à son statut ni à nb_articles."""
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
@@ -190,6 +222,11 @@ def modifier_contenu_newsletter(newsletter_id, nouveau_contenu):
 
 
 def derniere_newsletter_brouillon():
+    """Retourne la newsletter en `brouillon` la plus récente, ou None.
+
+    Tuple `(id, contenu, nb_articles, statut, date_generation)` — c'est ce que lit
+    l'interface de validation pour proposer une newsletter à relire.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -206,6 +243,11 @@ def derniere_newsletter_brouillon():
 
 
 def derniere_newsletter_validee():
+    """Retourne la newsletter en `validé` la plus récente, ou None.
+
+    Tuple `(id, contenu, nb_articles, statut, date_generation)` — c'est la newsletter que
+    la publication automatique du lundi enverra.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -222,6 +264,10 @@ def derniere_newsletter_validee():
 
 
 def newsletter_par_id(newsletter_id):
+    """Retourne une newsletter par son identifiant, quel que soit son statut, ou None.
+
+    Tuple `(id, contenu, nb_articles, statut, date_generation)`.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -237,6 +283,11 @@ def newsletter_par_id(newsletter_id):
 
 
 def lister_editions_publiees():
+    """Retourne toutes les newsletters `publié`, de la plus récente à la plus ancienne.
+
+    Liste de tuples `(id, contenu, nb_articles, statut, date_generation)`. C'est la source
+    de l'index de recherche de l'archive (`archive.search.indexer_editions()`).
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -252,6 +303,13 @@ def lister_editions_publiees():
 
 
 def enregistrer_publication_canal(newsletter_id, canal, statut, tentatives, erreur=None):
+    """Enregistre ou met à jour le résultat d'un envoi sur un canal.
+
+    Upsert sur `(newsletter_id, canal)` : republier un canal met à jour sa ligne au lieu
+    d'en créer une seconde, ce qui garde `tentatives` cumulatif et lisible.
+
+    Lève ValueError si `statut` n'est pas dans STATUTS_PUBLICATION_CANAL.
+    """
     if statut not in STATUTS_PUBLICATION_CANAL:
         raise ValueError(f"Statut de publication inconnu : {statut!r}")
 
@@ -277,6 +335,10 @@ def enregistrer_publication_canal(newsletter_id, canal, statut, tentatives, erre
 
 
 def statuts_publication(newsletter_id):
+    """Retourne l'état de publication par canal, trié par canal.
+
+    Liste de tuples `(canal, statut, tentatives, erreur, horodatage)`.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -293,6 +355,12 @@ def statuts_publication(newsletter_id):
 
 
 def tous_canaux_publies(newsletter_id, canaux=CANAUX_PUBLICATION):
+    """Indique si tous les canaux attendus ont le statut `publié`.
+
+    C'est la condition que `publisher/publish.py` vérifie avant de faire passer une
+    newsletter en `publié` : un succès partiel doit la laisser en `validé` pour permettre
+    une republication ciblée.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         rows = conn.execute(
@@ -306,6 +374,7 @@ def tous_canaux_publies(newsletter_id, canaux=CANAUX_PUBLICATION):
 
 
 def ajouter_abonne_email(email):
+    """Inscrit une adresse email, sans erreur ni doublon si elle existe déjà."""
     date_inscription = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -322,6 +391,7 @@ def ajouter_abonne_email(email):
 
 
 def lister_abonnes_actifs():
+    """Retourne les emails au statut `actif`, par ordre d'inscription."""
     conn = sqlite3.connect(DB_PATH)
     try:
         return [
@@ -334,6 +404,11 @@ def lister_abonnes_actifs():
 
 
 def desabonner_email(email):
+    """Passe un abonné au statut `inactif` sans supprimer sa ligne.
+
+    Conserver la ligne évite qu'un réabonnement accidentel par un import ultérieur ne
+    remette l'adresse dans la liste de diffusion.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute("UPDATE abonnes_email SET statut = 'inactif' WHERE email = ?", (email,))
@@ -343,6 +418,12 @@ def desabonner_email(email):
 
 
 def historique_newsletter(newsletter_id):
+    """Retourne les transitions de statut d'une newsletter, par ordre chronologique.
+
+    Liste de tuples `(ancien_statut, nouveau_statut, auteur, horodatage)`. Seules les
+    transitions réellement appliquées y figurent : une transition refusée ne laisse
+    aucune trace.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -359,6 +440,12 @@ def historique_newsletter(newsletter_id):
 
 
 def articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=None):
+    """Retourne les articles pertinents qui n'ont pas encore de résumé.
+
+    Liste de tuples `(url, titre, contenu)` filtrée sur `score_pertinence > seuil` et
+    `resume IS NULL`. `limit` borne le nombre d'articles, donc la consommation de l'API
+    Gemini lors d'un passage de `pipeline.run_summarize`.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         requete = """
@@ -376,6 +463,12 @@ def articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=None):
 
 
 def articles_selectionnables(seuil=SEUIL_PERTINENCE, limit=None):
+    """Retourne les articles candidats à la newsletter de la semaine.
+
+    Liste de tuples `(url, titre, contenu, source_id, date_pub, score_pertinence, resume)`
+    filtrée sur `score_pertinence > seuil`, `resume IS NOT NULL` et `selectionne = 0` :
+    un article déjà publié dans une édition ne peut pas ressortir la semaine suivante.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         requete = """
@@ -393,6 +486,11 @@ def articles_selectionnables(seuil=SEUIL_PERTINENCE, limit=None):
 
 
 def marquer_selectionne(url, score_editorial):
+    """Marque un article comme retenu dans une édition et fige son score éditorial.
+
+    Appelé seulement après une rédaction réussie : en cas d'échec du LLM, les articles
+    restent disponibles pour la tentative suivante au lieu d'être consommés.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
@@ -405,6 +503,7 @@ def marquer_selectionne(url, score_editorial):
 
 
 def article_existe(url):
+    """Indique si un article est déjà en base, par son url."""
     conn = sqlite3.connect(DB_PATH)
     try:
         row = conn.execute(

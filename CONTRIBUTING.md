@@ -59,6 +59,11 @@ python -m pytest tests/ -v
 Le détail de chaque composant (collecte, résumés, rédaction, validation, publication, archive) est
 documenté dans la section [Lancer chaque composant](README.md#lancer-chaque-composant) du README.
 
+Avant de toucher au code, deux lectures utiles : [docs/architecture.md](docs/architecture.md)
+pour comprendre comment les modules s'articulent et ce qu'il ne faut pas casser (notamment
+que `database.py` ne dépend d'aucun autre module), et [docs/api.md](docs/api.md) pour la
+signature exacte des fonctions publiques.
+
 ### Règles de sécurité à respecter
 
 - Ne commite **jamais** le fichier `.env` ni aucune clé API. Il est ignoré par Git — laisse-le ainsi.

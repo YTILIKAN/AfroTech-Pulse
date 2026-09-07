@@ -61,6 +61,14 @@ def detecter_pays(titre: str, contenu: str) -> str | None:
 
 
 def score_article(titre: str, contenu: str, source_id: str) -> int:
+    """Retourne le score de pertinence africaine d'un article, de 0 à 100.
+
+    Somme de bonus attribués une seule fois chacun : pays africain détecté (20), ville (15),
+    organisation panafricaine (15), terme tech africain (10), source africaine (10), plafonné
+    à 100. Recherche purement lexicale, sans appel réseau ni LLM.
+
+    Le seuil de rétention du pipeline est `database.SEUIL_PERTINENCE` (40).
+    """
     texte = (titre + " " + contenu).lower()
     score = 0
 

@@ -21,6 +21,13 @@ def _get_model():
 
 
 def hash_article(titre: str, url: str) -> str:
+    """Retourne l'empreinte MD5 du titre normalisé d'un article.
+
+    La normalisation (minuscules, ponctuation retirée, espaces compressés) fait qu'un même
+    titre repris avec une typographie différente donne la même empreinte. `url` est accepté
+    pour l'homogénéité des appels mais n'entre pas dans l'empreinte : deux urls différentes
+    pour un même titre sont considérées comme un doublon.
+    """
     titre_normalise = titre.lower().strip()
     titre_normalise = titre_normalise.translate(str.maketrans("", "", PONCTUATION))
     titre_normalise = re.sub(r"\s+", " ", titre_normalise).strip()
@@ -28,6 +35,7 @@ def hash_article(titre: str, url: str) -> str:
 
 
 def est_doublon_exact(article: dict, hashes_vus: set) -> bool:
+    """Indique si l'article a un titre déjà vu, d'après un ensemble d'empreintes."""
     h = hash_article(article.get("title", ""), article.get("url", ""))
     return h in hashes_vus
 
@@ -42,6 +50,11 @@ def _embedding(article: dict):
 
 
 def est_quasi_doublon(article: dict, articles_vus: list, seuil: float = SEUIL_QUASI_DOUBLON) -> bool:
+    """Indique si l'article traite du même sujet qu'un article déjà retenu.
+
+    Compare les embeddings (modèle multilingue) par similarité cosinus et retourne True
+    au-delà de `seuil`. Attrape les reprises reformulées qu'un hash de titre laisse passer.
+    """
     if not articles_vus:
         return False
 
@@ -54,6 +67,15 @@ def est_quasi_doublon(article: dict, articles_vus: list, seuil: float = SEUIL_QU
 
 
 def deduplicate(articles: list) -> list:
+    """Retourne les articles débarrassés de leurs doublons, dans l'ordre d'entrée.
+
+    Deux passes successives : doublon exact (empreinte du titre) puis quasi-doublon
+    (similarité sémantique). Affiche le décompte des articles retirés.
+
+    Attention : la déduplication est locale à la liste fournie. `orchestrator.run()`
+    l'applique source par source, donc deux sources relayant la même dépêche passent
+    toutes les deux.
+    """
     hashes_vus = set()
     articles_vus = []
     resultat = []

@@ -9,6 +9,11 @@ SEUIL_PERTINENCE = database.SEUIL_PERTINENCE
 
 
 def run(limit=None):
+    """Résume en batch tous les articles pertinents qui n'ont pas encore de résumé.
+
+    `limit` borne le nombre d'articles traités, donc la consommation de l'API Gemini.
+    Les échecs individuels sont comptés et n'interrompent pas le lot.
+    """
     database.creer_base()
 
     articles = database.articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=limit)
@@ -33,6 +38,7 @@ def run(limit=None):
 
 
 def main():
+    """Point d'entrée en ligne de commande : `python -m pipeline.run_summarize [--limit N]`."""
     parser = argparse.ArgumentParser(description="Résume en batch les articles pertinents pas encore résumés.")
     parser.add_argument("--limit", type=int, default=None, help="Nombre maximum d'articles à résumer.")
     args = parser.parse_args()

@@ -17,6 +17,12 @@ _client = None
 
 
 def get_client():
+    """Retourne le client HTTP Gemini, créé au premier appel puis réutilisé.
+
+    Même stratégie que `pipeline.summarize.get_client()` : mise en cache dans un global.
+
+    Lève RuntimeError si GEMINI_API_KEY est absente.
+    """
     global _client
     if _client is None:
         cle = os.getenv("GEMINI_API_KEY")
@@ -85,10 +91,17 @@ def _construire_prompt_utilisateur(articles: list[dict]) -> str:
 
 
 def compter_articles(newsletter: str) -> int:
+    """Retourne le nombre de blocs d'article (`### `) présents dans une newsletter."""
     return len(re.findall(r"^### ", newsletter, flags=re.MULTILINE))
 
 
 def structure_respectee(newsletter: str, nb_articles_attendu: int) -> bool:
+    """Vérifie que la newsletter suit le gabarit imposé au LLM.
+
+    Exige les trois sections `## Édito`, `## Cette semaine`, `## Conclusion` et exactement
+    `nb_articles_attendu` blocs `###`. Le format complet est décrit dans
+    docs/format_newsletter.md.
+    """
     if "## Édito" not in newsletter:
         return False
     if "## Cette semaine" not in newsletter:
@@ -99,6 +112,14 @@ def structure_respectee(newsletter: str, nb_articles_attendu: int) -> bool:
 
 
 def generer_newsletter(articles: list[dict]) -> str | None:
+    """Rédige la newsletter complète à partir d'une sélection d'articles, ou None.
+
+    Retourne le markdown produit par Gemini. Une structure non conforme n'annule pas la
+    génération : elle est signalée dans les logs et le contenu est retourné tel quel, la
+    décision revenant au validateur humain. Retourne None si la liste est vide, si la
+    réponse est inexploitable, ou après MAX_TENTATIVES échecs (backoff exponentiel sur
+    les 429 et 5xx).
+    """
     if not articles:
         print("  [IGNORÉ] aucun article fourni, pas de newsletter à générer.")
         return None

@@ -27,6 +27,7 @@ Conçu pour informer, construit pour durer, publié chaque semaine sans exceptio
 - [Tests](#tests)
 - [Stabilité et limites connues](#stabilité-et-limites-connues)
 - [Sources surveillées](#sources-surveillées)
+- [Documentation technique](#documentation-technique)
 - [Contribuer](#contribuer)
 - [Licence](#licence)
 
@@ -61,14 +62,15 @@ consultables via une interface Streamlit dédiée.
 Visualisation des tendances IA en Afrique en temps réel : carte géographique, graphiques par
 secteur, timeline, top acteurs, nuage de mots.
 
-> **État** : le dashboard est la dernière brique en cours de développement. `dashboard/app.py`
-> est encore un fichier vide — le lancer affiche une page blanche.
+Filtres combinables (période de 4, 8 ou 12 semaines, pays, secteur) appliqués
+simultanément à toutes les visualisations, et vue comparative entre plusieurs pays.
 
 ---
 
 ## Architecture du pipeline
 
 Le projet fonctionne comme une chaîne de production automatique en 10 étapes.
+Le détail des modules et de leurs dépendances est dans [docs/architecture.md](docs/architecture.md).
 
 ```
 CHAQUE JOUR (cron 0 6 * * *  —  daily_scrape.yml)
@@ -192,10 +194,22 @@ AfroTech-Pulse/
 │   └── app.py               ← Archive publique Streamlit
 │
 ├── dashboard/
-│   └── app.py               ← Interface publique (carte + graphiques) — à implémenter
+│   ├── app.py               ← Page Streamlit publique (5 visualisations + filtres)
+│   ├── data.py              ← Seul module du dashboard qui touche SQLite
+│   ├── enrichment.py        ← Détection pays (ISO-3) et secteurs
+│   ├── aggregations.py      ← Agrégations pures : pays, secteurs, semaines, comparaison
+│   ├── filters.py           ← Filtres période / pays / secteur
+│   ├── entities.py          ← Extraction des acteurs cités
+│   ├── text.py              ← Stopwords et comptage pour le nuage de mots
+│   └── theme.py             ← Charte visuelle et gabarit Plotly
 │
 ├── tests/                   ← Suite pytest complète
-├── docs/                    ← Notes de conception et audits
+│
+├── docs/
+│   ├── architecture.md      ← Vue d'ensemble, dépendances, machine à états
+│   ├── api.md               ← Référence des fonctions publiques
+│   ├── audit_securite.md    ← Constats avant passage en open source
+│   └── format_newsletter.md ← Gabarit de sortie du rédacteur LLM
 │
 ├── data/
 │   └── sources.json         ← Catalogue des sources surveillées
@@ -224,7 +238,8 @@ AfroTech-Pulse/
 | Intelligence | Google Gemini API (`gemini-3.6-flash`) | Résumés + rédaction newsletter |
 | Stockage | SQLite | Base de données locale des articles et éditions |
 | Interfaces | Streamlit | Validation, archive, dashboard |
-| Dashboard | Plotly | Visualisations (à implémenter) |
+| Dashboard | Plotly | Carte choroplèthe, barres, timeline |
+| Dashboard | wordcloud | Nuage de mots des tendances |
 | Archive | Whoosh | Moteur de recherche full-text |
 | Automatisation | GitHub Actions | Cron gratuit (2000 min/mois) |
 | Publication | Telegram Bot API | Distribution de la newsletter (canal actif) |
@@ -342,7 +357,9 @@ python archive/search.py
 ```bash
 streamlit run dashboard/app.py
 ```
-> Non implémenté à ce jour — `dashboard/app.py` est un fichier vide et la page s'affichera vierge.
+Carte choroplèthe des pays mentionnés, répartition sectorielle, timeline hebdomadaire, nuage
+de mots et top acteurs cités. Les filtres de la barre latérale (période, pays, secteur) se
+combinent et s'appliquent à l'ensemble des visualisations.
 
 ---
 
@@ -491,6 +508,20 @@ type web, API et PDF sont cataloguées pour une évolution future mais ne sont p
 | Social | Twitter/X #AIAfrica, LinkedIn | 3 |
 | Podcasts | The Flip Africa | 3 |
 | Rapports | McKinsey | 3 |
+
+---
+
+## Documentation technique
+
+| Document | Contenu |
+|---|---|
+| [docs/architecture.md](docs/architecture.md) | Le pipeline en 10 étapes, l'articulation des modules, le graphe de dépendances entre fichiers, la machine à états des newsletters et les 4 workflows GitHub Actions |
+| [docs/api.md](docs/api.md) | Référence des fonctions publiques de `database.py`, `pipeline/`, `publisher/` et `archive/search.py` — signature, paramètres, retour, exemple |
+| [docs/format_newsletter.md](docs/format_newsletter.md) | Gabarit markdown imposé au rédacteur LLM |
+| [docs/audit_securite.md](docs/audit_securite.md) | Constats de sécurité à traiter avant de rendre le dépôt public |
+
+Pour comprendre le projet, lire `architecture.md` en premier : il donne la carte, `api.md`
+donne le détail.
 
 ---
 

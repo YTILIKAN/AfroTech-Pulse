@@ -76,6 +76,17 @@ def _finaliser_si_complet(newsletter_id, auteur):
 
 
 def publish_newsletter(auteur="orchestrateur"):
+    """Publie la dernière newsletter validée sur tous les canaux actifs.
+
+    Retourne `{canal: succès}`, ou un dict vide si aucune newsletter n'est en attente.
+    Ne lève jamais : chaque canal est isolé, une panne réseau sur l'un n'empêche pas de
+    tenter les autres ni ne fait planter l'interface Streamlit qui appelle cette fonction
+    depuis un bouton.
+
+    Le statut global ne passe à `publié` que si tous les canaux ont réussi ; un succès
+    partiel laisse la newsletter en `validé` et permet une republication ciblée par
+    `republier_canal()`.
+    """
     newsletter = database.derniere_newsletter_validee()
     if newsletter is None:
         print("[INFO] Aucune newsletter validée en attente de publication.")
@@ -92,6 +103,15 @@ def publish_newsletter(auteur="orchestrateur"):
 
 
 def republier_canal(newsletter_id, canal, auteur="orchestrateur"):
+    """Réémet une newsletter sur un seul canal, sans retoucher les autres.
+
+    Retourne True si l'envoi a réussi. Sert à rattraper un échec partiel : le canal déjà
+    publié n'est pas renvoyé et son compteur de tentatives n'est pas incrémenté. Fait passer
+    la newsletter en `publié` si ce rattrapage complète les canaux manquants.
+
+    Lève ValueError si le canal est inconnu ou désactivé, si la newsletter est introuvable,
+    ou si son statut n'est pas `validé`.
+    """
     if canal not in database.CANAUX_PUBLICATION:
         raise ValueError(f"Canal inconnu ou désactivé : {canal!r}")
 

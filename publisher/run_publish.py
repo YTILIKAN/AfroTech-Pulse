@@ -12,6 +12,15 @@ from publisher.publish import publish_newsletter
 
 
 def run(auteur="github-actions") -> int:
+    """Publie la newsletter validée et retourne un code de sortie pour GitHub Actions.
+
+    Retourne 0 si la publication a réussi ou s'il n'y avait rien à publier, 1 si un canal a
+    échoué. Cette traduction en code de sortie est la raison d'être du module :
+    `publish_newsletter()` ne lève jamais, un échec passerait donc « vert » dans le workflow.
+    Un échec déclenche en plus une alerte Telegram à l'équipe.
+
+    Point d'entrée de `monday_publish.yml`.
+    """
     database.creer_base()
     resultats = publish_newsletter(auteur=auteur)
 

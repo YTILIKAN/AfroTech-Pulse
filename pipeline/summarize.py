@@ -16,6 +16,15 @@ _client = None
 
 
 def get_client():
+    """Retourne le client HTTP Gemini, créé au premier appel puis réutilisé.
+
+    Le client est mis en cache dans un global : la clé est lue une seule fois par process.
+    Les clients de publication (`telegram_client`, `email_client`) font l'inverse et
+    recréent le leur à chaque appel, parce qu'ils tournent dans une interface Streamlit
+    de longue durée où le `.env` peut changer sans redémarrage.
+
+    Lève RuntimeError si GEMINI_API_KEY est absente.
+    """
     global _client
     if _client is None:
         cle = os.getenv("GEMINI_API_KEY")
@@ -53,6 +62,14 @@ sans numérotation, sans tiret, sans titre ni introduction."""
 
 
 def summarize_article(titre: str, contenu: str) -> str | None:
+    """Retourne le résumé en 3 lignes d'un article, ou None en cas d'échec.
+
+    Résumé en français avec angle africain obligatoire, imposé par le prompt système.
+    Retourne None sans lever si l'article est trop court, si Gemini renvoie une réponse
+    inexploitable (typiquement un blocage par filtre de sécurité), ou après MAX_TENTATIVES
+    échecs. Les 429 et 5xx sont réessayés avec backoff exponentiel ; les autres codes HTTP
+    sont abandonnés immédiatement, un nouvel essai ne changerait rien.
+    """
     if not contenu or len(contenu.strip()) < LONGUEUR_MIN_CONTENU:
         print("  [IGNORÉ] article trop court/vide pour être résumé.")
         return None

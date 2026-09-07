@@ -36,6 +36,13 @@ def _get_client():
 
 
 def envoyer_notification_equipe(message: str) -> bool:
+    """Envoie un message HTML au groupe Telegram privé de l'équipe.
+
+    Retourne True si Telegram a accepté le message. Cible TELEGRAM_ADMIN_CHAT_ID, à ne pas
+    confondre avec TELEGRAM_CHANNEL_ID qui est le canal public des abonnés.
+
+    Lève RuntimeError si TELEGRAM_ADMIN_CHAT_ID est absent.
+    """
     chat_id = os.getenv("TELEGRAM_ADMIN_CHAT_ID")
     if not chat_id:
         raise RuntimeError(
@@ -90,6 +97,14 @@ def rappel_validation() -> bool:
 
 
 def main() -> int:
+    """Envoie le rappel de validation du lundi et retourne un code de sortie.
+
+    Retourne 0 s'il n'y a aucune newsletter en brouillon (cas normal) ou si le rappel est
+    parti, 1 si un rappel était nécessaire mais n'a pas pu être envoyé — le run GitHub
+    Actions vire alors au rouge, pour qu'un rappel perdu ne passe pas inaperçu.
+
+    Point d'entrée de `monday_reminder.yml`.
+    """
     database.creer_base()
     # Rien à valider -> exit 0 (cas normal). Newsletter en attente mais envoi KO -> exit 1
     # pour que le run GitHub Actions vire au rouge et que l'échec soit visible.

@@ -17,6 +17,13 @@ def get_client():
     # Pas de mise en cache du client : si la clé RESEND_API_KEY change dans .env pendant
     # que review_ui.py tourne en continu, un client mis en cache resterait périmé jusqu'au
     # redémarrage du process et échouerait avec un 401 qui ressemble à un bug API.
+    """Retourne un client HTTP Resend neuf à chaque appel.
+
+    Non mis en cache pour la même raison que le client Telegram : une clé changée dans
+    `.env` doit être prise en compte sans redémarrer `review_ui.py`.
+
+    Lève RuntimeError si RESEND_API_KEY est absente.
+    """
     cle = os.getenv("RESEND_API_KEY")
     if not cle:
         raise RuntimeError(
@@ -30,6 +37,14 @@ def get_client():
 
 
 def envoyer_email(contenu: str) -> bool:
+    """Envoie la newsletter aux abonnés actifs et retourne True en cas de succès.
+
+    Les destinataires sont en copie cachée pour qu'ils ne voient pas les adresses les uns
+    des autres ; le champ `to` pointe sur l'expéditeur, exigence technique de l'API Resend.
+    Canal actuellement désactivé en production (cf. `database.CANAUX_PUBLICATION`).
+
+    Lève RuntimeError si RESEND_FROM_EMAIL est absent ou si aucun abonné n'est actif.
+    """
     expediteur = os.getenv("RESEND_FROM_EMAIL")
     if not expediteur:
         raise RuntimeError(

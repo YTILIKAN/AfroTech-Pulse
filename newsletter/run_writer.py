@@ -8,6 +8,15 @@ from pipeline.editor import SELECTION_MIN, selectionner_articles_semaine
 
 
 def run(seuil=None):
+    """Enchaîne sélection éditoriale et rédaction, et sauvegarde un brouillon.
+
+    Retourne l'identifiant de la newsletter créée, ou None si aucun article n'est
+    sélectionnable ou si la rédaction échoue. Les articles ne sont marqués `selectionne`
+    qu'après une génération réussie : un échec du LLM les laisse disponibles pour la
+    tentative suivante au lieu de les consommer.
+
+    Point d'entrée de `weekly_editor.yml`.
+    """
     database.creer_base()
 
     selection = selectionner_articles_semaine(seuil=seuil)
@@ -39,6 +48,7 @@ def run(seuil=None):
 
 
 def main():
+    """Point d'entrée en ligne de commande : `python -m newsletter.run_writer [--seuil N]`."""
     parser = argparse.ArgumentParser(
         description="Sélectionne les meilleurs articles de la semaine et rédige la newsletter en brouillon."
     )

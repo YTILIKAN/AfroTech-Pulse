@@ -11,6 +11,12 @@ REQUEST_TIMEOUT = 10
 
 # lit toutes les sources et garde uniquement celle de type choisir
 def load_sources():
+    """Retourne les sources RSS actives de data/sources.json.
+
+    Seules les entrées `type == "rss"`, `active` et pourvues d'une url sont retenues — les
+    sources de type web, api et pdf sont cataloguées pour une évolution future mais ne sont
+    pas encore collectées.
+    """
     with open(SOURCES_FILE, "r", encoding="utf-8") as f:
         data = json.load(f)
     rss_sources = [
@@ -21,6 +27,15 @@ def load_sources():
 
 # Coeur du scraper qui viste l'url,gere les erreurs et extraires chaque article
 def scrape_rss(source):
+    """Récupère et parse le flux d'une source, et retourne ses articles.
+
+    Chaque article est un dict `{source_id, source_name, category, title, url, published,
+    content}`. `published` est normalisé en ISO 8601 quand feedparser a su lire la date.
+
+    Ne lève jamais : timeout, erreur réseau, erreur HTTP ou flux illisible sont journalisés
+    et retournent une liste vide, pour qu'une source en panne n'interrompe pas la collecte
+    des autres.
+    """
     name = source["name"]
     url = source["url"]
 
@@ -76,6 +91,12 @@ def scrape_rss(source):
 
 # Boucle principale sur toutes les sources Rss
 def main():
+    """Collecte toutes les sources RSS actives et retourne les articles trouvés.
+
+    Point d'entrée autonome, utile pour tester la collecte seule. Le pipeline de production
+    passe par `orchestrator.run()`, qui enchaîne collecte, déduplication, scoring et
+    sauvegarde.
+    """
     sources = load_sources()
     print(f"AfroTech Pulse — Scraping de {len(sources)} sources RSS\n")
 

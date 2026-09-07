@@ -48,6 +48,14 @@ def _mettre_en_forme_telegram(contenu):
 def get_client():
     # Pas de mise en cache : évite qu'un token périmé reste utilisé après un changement
     # de .env sans redémarrage du process (même raisonnement que email_client.get_client()).
+    """Retourne un client HTTP Telegram neuf à chaque appel.
+
+    Volontairement non mis en cache, contrairement aux clients Gemini : `review_ui.py`
+    tourne en continu et un token modifié dans `.env` resterait sinon périmé jusqu'au
+    redémarrage du process, avec un 401 qui ressemble à un bug d'API.
+
+    Lève RuntimeError si TELEGRAM_BOT_TOKEN est absent.
+    """
     token = os.getenv("TELEGRAM_BOT_TOKEN")
     if not token:
         raise RuntimeError(
@@ -131,6 +139,16 @@ def _envoyer_message(channel_id, texte_html):
 
 
 def envoyer_telegram(contenu: str) -> bool:
+    """Publie une newsletter markdown sur le canal Telegram et retourne True si tout est parti.
+
+    Le markdown est converti en HTML Telegram (titres en gras, `Lien :` en lien cliquable)
+    plutôt que passé en mode Markdown natif, qui échoue dès qu'un underscore ou une
+    astérisque n'est pas fermé — fréquent dans les urls et les noms propres. Les messages
+    dépassant 4096 caractères sont découpés à un point de coupure qui préserve l'équilibre
+    des balises. Retourne False dès qu'un morceau échoue après MAX_TENTATIVES.
+
+    Lève RuntimeError si TELEGRAM_CHANNEL_ID est absent.
+    """
     channel_id = os.getenv("TELEGRAM_CHANNEL_ID")
     if not channel_id:
         raise RuntimeError(

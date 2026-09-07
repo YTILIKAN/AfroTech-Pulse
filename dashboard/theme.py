@@ -52,6 +52,11 @@ PLOTLY_CONFIG = {"displayModeBar": False, "scrollZoom": False}
 
 
 def styliser(fig, hauteur=None):
+    """Applique le gabarit Plotly de la marque à une figure et la retourne.
+
+    Fixe le template `afrotech` (palette, typographie, axes, infobulles) et masque la
+    légende. `hauteur` force la hauteur en pixels quand elle dépend du nombre de barres.
+    """
     fig.update_layout(template="afrotech", showlegend=False)
     if hauteur is not None:
         fig.update_layout(height=hauteur)

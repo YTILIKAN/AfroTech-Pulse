@@ -47,6 +47,7 @@ class _FormatteurMarkdown(highlight.Formatter):
     """
 
     def format_token(self, text, token, replace=False):
+        """Rend un mot trouvé en **gras** markdown (surcharge du formateur Whoosh)."""
         return f"**{highlight.get_text(text, token, replace)}**"
 
 

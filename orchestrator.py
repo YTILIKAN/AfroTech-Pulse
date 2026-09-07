@@ -7,6 +7,15 @@ SEUIL_PERTINENCE = database.SEUIL_PERTINENCE
 
 
 def run():
+    """Exécute la collecte quotidienne : scraping, déduplication, scoring, sauvegarde.
+
+    Point d'entrée de `daily_scrape.yml`. Pour chaque source RSS active : récupère les
+    articles, déduplique le lot de cette source, score la pertinence africaine, puis insère
+    ceux qui ne sont pas déjà en base. Affiche un bilan chiffré à la fin.
+
+    Ne consomme aucun crédit LLM : le résumé est une étape séparée
+    (`pipeline.run_summarize`).
+    """
     database.creer_base()
 
     sources = load_sources()

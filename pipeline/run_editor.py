@@ -7,6 +7,11 @@ from pipeline.editor import SELECTION_MIN, selectionner_articles_semaine
 
 
 def run(seuil=None):
+    """Sélectionne les articles de la semaine et les marque en base, sans rédiger.
+
+    Utile pour inspecter la sélection éditoriale sans consommer de crédits de rédaction.
+    La chaîne complète de production passe par `newsletter.run_writer`.
+    """
     database.creer_base()
 
     selection = selectionner_articles_semaine(seuil=seuil)
@@ -27,6 +32,7 @@ def run(seuil=None):
 
 
 def main():
+    """Point d'entrée en ligne de commande : `python -m pipeline.run_editor [--seuil N]`."""
     parser = argparse.ArgumentParser(
         description="Sélectionne les 5-7 meilleurs articles de la semaine pour la newsletter."
     )
