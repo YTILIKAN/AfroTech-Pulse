@@ -159,6 +159,17 @@ if modifier or valider or rejeter:
     if valider:
         _finaliser(newsletter_id, "validé", auteur)
         st.success(f"Newsletter #{newsletter_id} validée par {auteur}.")
+        st.info(
+            "**Dernière étape — pousser la base vers le repo.**\n\n"
+            "La publication automatique du lundi (`monday_publish.yml`) lit `afrotech.db` "
+            "depuis GitHub, pas depuis ce poste. Sans ce push, la newsletter validée ne "
+            "sera pas publiée."
+        )
+        st.code(
+            f'git add afrotech.db && git commit -m "validation newsletter #{newsletter_id}" && git push',
+            language="bash",
+        )
+        st.stop()
     elif rejeter:
         _finaliser(newsletter_id, "rejeté", auteur)
         st.warning(f"Newsletter #{newsletter_id} rejetée par {auteur}.")

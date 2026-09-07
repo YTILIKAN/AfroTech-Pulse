@@ -1,0 +1,42 @@
+name: Monday Publish
+
+# 13:00 UTC = 9h heure de l'Est (Montréal) l'été (EDT), 8h l'hiver (EST).
+# GitHub Actions ne gère pas le changement d'heure : le décalage d'1h en hiver est assumé.
+# Les crons planifiés peuvent aussi partir avec 5-20 min de retard aux heures de pointe.
+on:
+  schedule:
+    - cron: "0 13 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Publier la newsletter validee (si elle existe)
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHANNEL_ID: ${{ secrets.TELEGRAM_CHANNEL_ID }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+        run: python -m publisher.run_publish
+
+      - name: Sauvegarder la base de donnees
+        if: always()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Publication automatique du ${{ github.run_started_at }}"
+          file_pattern: "afrotech.db"

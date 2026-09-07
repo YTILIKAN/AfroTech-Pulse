@@ -5,6 +5,7 @@ sentence-transformers
 httpx
 streamlit
 plotly
+pandas
 python-dotenv
 whoosh
 pytest

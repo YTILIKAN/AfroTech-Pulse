@@ -44,10 +44,26 @@ def _publier_canal(newsletter_id, canal, contenu):
     return succes
 
 
+def _reindexer_archive(newsletter_id):
+    # Import local : évite un cycle publish → search → database et garde publish.py importable
+    # même sans Whoosh installé.
+    from archive.search import indexer_editions
+
+    try:
+        indexer_editions()
+        print(f"[OK] Archive réindexée — newsletter #{newsletter_id} est cherchable.")
+    except Exception as e:
+        # Même logique que _publier_canal() : l'envoi vers les abonnés a réussi, une archive
+        # qui n'indexe pas ne doit pas remonter une exception dans le bouton "Publier"
+        # de review_ui.py ni faire échouer l'orchestrateur.
+        print(f"[ALERTE] Newsletter #{newsletter_id} publiée mais non indexée dans l'archive : {e}")
+
+
 def _finaliser_si_complet(newsletter_id, auteur):
     if database.tous_canaux_publies(newsletter_id, canaux=database.CANAUX_PUBLICATION):
         database.changer_statut_newsletter(newsletter_id, "publié", auteur)
         print(f"[OK] Newsletter #{newsletter_id} marquée 'publié' — tous les canaux ont réussi.")
+        _reindexer_archive(newsletter_id)
     else:
         canaux_restants = [
             canal for canal, statut, *_ in database.statuts_publication(newsletter_id)
