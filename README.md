@@ -48,12 +48,13 @@ Publiée chaque lundi sur le Channel Telegram Y'TILIKAN. Entièrement générée
 > (vérification d'entreprise Meta/LinkedIn).
 
 ### 2. Dashboard public interactif
-Visualisation des tendances IA en Afrique en temps réel :
-- Carte géographique des pays les plus mentionnés
-- Graphiques par secteur (fintech, santé, éducation, agriculture)
-- Timeline des articles
-- Top acteurs mentionnés
-- Nuage de mots tendances
+Visualisation des tendances IA en Afrique (`streamlit run dashboard/app.py`), sur les
+4 dernières semaines :
+- **V1 (livré)** : carte choroplèthe des pays mentionnés, répartition par secteur
+  (fintech, santé, éducation, agriculture), volume hebdomadaire d'articles
+- **V2 (à venir, S11)** : top acteurs mentionnés, nuage de mots, comparaison pays, filtres
+
+Détails de conception : [`docs/s10_dashboard.md`](docs/s10_dashboard.md).
 
 ---
 
@@ -158,7 +159,11 @@ AfroTech-Pulse/
 │   └── run_writer.py        ← Chaîne sélection éditoriale + rédaction, sauvegarde en brouillon
 │
 ├── dashboard/
-│   └── app.py               ← Interface Streamlit publique (carte + graphiques)
+│   ├── app.py               ← Page Streamlit publique (KPIs + 3 graphiques Plotly)
+│   ├── data.py              ← Accès SQLite + fenêtre 4 semaines complètes
+│   ├── enrichment.py        ← Détection pays (ISO-3) + classification secteur
+│   ├── aggregations.py      ← Agrégations par pays / secteur / semaine
+│   └── theme.py             ← Palette de marque + gabarit Plotly commun
 │
 ├── validation/
 │   └── review_ui.py         ← Validation humaine + panneau de publication assistée
