@@ -1,4 +1,4 @@
-from pipeline.filter import score_article
+from pipeline.filter import detecter_pays, score_article
 
 
 def test_article_africain_ville_et_startup():
@@ -35,3 +35,19 @@ def test_bonus_source_africaine():
         source_id="techpoint-africa"
     )
     assert score > 0, f"score={score}, attendu > 0"
+
+
+def test_detecter_pays_trouve_le_pays_mentionne():
+    pays = detecter_pays(
+        titre="Kenya launches new AI agriculture initiative",
+        contenu="The Kenyan government partners with local startups.",
+    )
+    assert pays == "kenya", f"pays={pays}, attendu 'kenya'"
+
+
+def test_detecter_pays_retourne_none_si_aucun_pays():
+    pays = detecter_pays(
+        titre="Apple launches new iPhone in California",
+        contenu="Apple held its annual keynote in Cupertino.",
+    )
+    assert pays is None, f"pays={pays}, attendu None"

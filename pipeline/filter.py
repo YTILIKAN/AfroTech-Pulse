@@ -51,14 +51,21 @@ SOURCES_AFRICAINES = [
 ]
 
 
+def detecter_pays(titre: str, contenu: str) -> str | None:
+    """Retourne le premier pays africain détecté dans le texte, ou None."""
+    texte = (titre + " " + contenu).lower()
+    for pays in PAYS_AFRICAINS:
+        if pays in texte:
+            return pays
+    return None
+
+
 def score_article(titre: str, contenu: str, source_id: str) -> int:
     texte = (titre + " " + contenu).lower()
     score = 0
 
-    for pays in PAYS_AFRICAINS:
-        if pays in texte:
-            score += 20
-            break
+    if detecter_pays(titre, contenu):
+        score += 20
 
     for ville in VILLES_AFRICAINES:
         if ville in texte:
