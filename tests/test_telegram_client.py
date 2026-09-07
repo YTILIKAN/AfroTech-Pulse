@@ -16,6 +16,14 @@ def fake_response(status_code, text=""):
 class FakeClient:
     def __init__(self, post_fn):
         self.post = post_fn
+        self.closed = False
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc_info):
+        self.closed = True
+        return False
 
 
 def test_envoi_reussi_retourne_true(monkeypatch):
@@ -45,6 +53,34 @@ def test_erreur_4xx_abandonne_immediatement(monkeypatch):
 
     assert envoyer_telegram(CONTENU) is False
     assert appels["n"] == 1, "une erreur 4xx ne doit pas être réessayée"
+
+
+def test_un_seul_client_ouvert_puis_ferme_meme_avec_retries(monkeypatch):
+    """Régression S14 : get_client() créait un httpx.Client jamais fermé à chaque
+    tentative — une newsletter republiée après un échec transitoire fuyait donc une
+    connexion par retry. Un seul client doit être ouvert (et fermé) par envoi."""
+    monkeypatch.setenv("TELEGRAM_CHANNEL_ID", "@ytilikan")
+    monkeypatch.setattr(telegram_module.time, "sleep", lambda _: None)
+    appels = {"n": 0}
+    clients_crees = []
+
+    def post_fn(url, json):
+        appels["n"] += 1
+        if appels["n"] < 3:
+            return fake_response(503, "Service Unavailable")
+        return fake_response(200)
+
+    def fake_get_client():
+        client = FakeClient(post_fn)
+        clients_crees.append(client)
+        return client
+
+    monkeypatch.setattr(telegram_module, "get_client", fake_get_client)
+
+    assert envoyer_telegram(CONTENU) is True
+    assert appels["n"] == 3, "3 tentatives (2 échecs 5xx + 1 succès) doivent réutiliser le même client"
+    assert len(clients_crees) == 1, "un seul client doit être ouvert pour tout l'envoi, retries compris"
+    assert clients_crees[0].closed is True, "le client doit être explicitement fermé après l'envoi"
 
 
 def test_erreur_5xx_retry_puis_succes(monkeypatch):
