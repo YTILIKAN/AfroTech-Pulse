@@ -236,6 +236,21 @@ def newsletter_par_id(newsletter_id):
         conn.close()
 
 
+def lister_editions_publiees():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        return conn.execute(
+            """
+            SELECT id, contenu, nb_articles, statut, date_generation
+            FROM newsletters
+            WHERE statut = 'publié'
+            ORDER BY date_generation DESC
+            """
+        ).fetchall()
+    finally:
+        conn.close()
+
+
 def enregistrer_publication_canal(newsletter_id, canal, statut, tentatives, erreur=None):
     if statut not in STATUTS_PUBLICATION_CANAL:
         raise ValueError(f"Statut de publication inconnu : {statut!r}")
