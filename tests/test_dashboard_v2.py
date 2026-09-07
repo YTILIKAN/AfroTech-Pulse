@@ -330,7 +330,7 @@ def test_les_cinq_visualisations_sont_presentes(monkeypatch, tmp_path):
     # carte + secteurs + timeline + top acteurs + comparaison
     assert len(at.get("plotly_chart")) == 5
     # le nuage de mots est une image, pas un graphique Plotly
-    assert len(at.get("imgs")) == 1
+    assert len(at.get("image")) == 1
     assert len(at.subheader) == 6
 
 
@@ -347,7 +347,7 @@ def test_un_filtre_pays_modifie_toutes_les_visualisations(monkeypatch, tmp_path)
     assert at.get("plotly_chart")[3].proto.spec != acteurs_avant, (
         "le top acteurs doit être recalculé sur les articles filtrés"
     )
-    assert len(at.get("imgs")) == 1, "le nuage de mots reste affiché, recalculé"
+    assert len(at.get("image")) == 1, "le nuage de mots reste affiché, recalculé"
     assert len(at.subheader) == 6, "aucune section ne disparaît"
 
 
