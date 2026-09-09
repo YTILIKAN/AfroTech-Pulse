@@ -1,4 +1,14 @@
-# pipeline/summarize.py — Agent résumé LLM (Gemini) : 3 lignes, angle africain, en français
+"""Agent résumé LLM (Gemini) : 3 lignes, angle africain obligatoire, en français.
+
+`summarize_article()` appelle l'API Gemini avec ``SYSTEM_PROMPT``. Résilient :
+3 tentatives avec backoff exponentiel (2s/4s/8s) sur les 429/5xx et les timeouts,
+puis abandon en retournant ``None`` (jamais d'exception propagée). Un contenu
+trop court, ou une réponse 200 sans texte exploitable (filtre de sécurité
+Gemini), retourne aussi ``None`` sans réessayer.
+
+La clé est lue via ``GEMINI_API_KEY`` ; le client HTTP est mis en cache au
+premier appel.
+"""
 
 import os
 import time
@@ -53,6 +63,7 @@ sans numérotation, sans tiret, sans titre ni introduction."""
 
 
 def summarize_article(titre: str, contenu: str) -> str | None:
+    """Résumé en 3 lignes de l'article, ou ``None`` en cas d'échec ou de contenu inexploitable."""
     if not contenu or len(contenu.strip()) < LONGUEUR_MIN_CONTENU:
         print("  [IGNORÉ] article trop court/vide pour être résumé.")
         return None

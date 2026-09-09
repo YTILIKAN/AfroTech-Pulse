@@ -1,4 +1,17 @@
-# publisher/publish.py — Orchestration de la publication multicanal (Telegram + Email)
+"""Orchestration de la publication multicanal.
+
+`publish_newsletter()` prend la dernière newsletter `validé`, l'envoie sur chaque
+canal de ``database.CANAUX_PUBLICATION`` (aujourd'hui : `telegram` seul), trace
+le résultat par canal (``database.enregistrer_publication_canal``), puis ne fait
+passer la newsletter à `publié` — et ne réindexe l'archive — que si **tous** les
+canaux ont réussi. Un canal en échec laisse la newsletter `validé` pour un
+`republier_canal()` ultérieur.
+
+Aucune fonction ne lève : une erreur de config, réseau ou d'indexation est
+capturée et loguée, pour que l'appel depuis un bouton de `review_ui.py` ou depuis
+un cron ne plante jamais à mi-parcours. C'est `run_publish.py` qui traduit le
+résultat en code de sortie et en alerte d'équipe.
+"""
 
 import database
 from publisher.email_client import envoyer_email
@@ -76,6 +89,11 @@ def _finaliser_si_complet(newsletter_id, auteur):
 
 
 def publish_newsletter(auteur="orchestrateur"):
+    """Publie la dernière newsletter `validé` sur tous les canaux actifs.
+
+    Retourne ``{canal: bool}`` (succès par canal), ou ``{}`` s'il n'y a aucune
+    newsletter validée en attente. Ne lève jamais.
+    """
     newsletter = database.derniere_newsletter_validee()
     if newsletter is None:
         print("[INFO] Aucune newsletter validée en attente de publication.")
@@ -92,6 +110,12 @@ def publish_newsletter(auteur="orchestrateur"):
 
 
 def republier_canal(newsletter_id, canal, auteur="orchestrateur"):
+    """Rejoue l'envoi d'**un** canal pour une newsletter encore `validé`.
+
+    Lève ``ValueError`` si le canal est inconnu/désactivé, la newsletter
+    introuvable, ou son statut différent de `validé`. Finalise en `publié` si ce
+    dernier canal complète la publication.
+    """
     if canal not in database.CANAUX_PUBLICATION:
         raise ValueError(f"Canal inconnu ou désactivé : {canal!r}")
 
