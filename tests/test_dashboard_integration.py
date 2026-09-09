@@ -28,8 +28,8 @@ def test_page_se_charge_sur_une_copie_de_la_base_de_prod(monkeypatch, tmp_path):
     at = AppTest.from_file(APP_PATH, default_timeout=60).run()
 
     assert not at.exception, "la page ne doit pas lever d'exception avec les données de prod"
-    # 3 visualisations : carte + secteurs + timeline
-    assert len(at.get("plotly_chart")) == 3
+    # 5 visualisations : carte + secteurs + timeline (V1) + top acteurs + comparaison pays (V2, S11)
+    assert len(at.get("plotly_chart")) == 5
     assert any("pouls de l'IA" in h.value for h in at.title)
 
 
