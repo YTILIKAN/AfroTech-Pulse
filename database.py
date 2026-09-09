@@ -1,9 +1,33 @@
+"""Accès SQLite — point d'entrée unique de la persistance du projet.
+
+Toutes les lectures/écritures passent par ce module ; aucun autre fichier n'ouvre
+de connexion `sqlite3`. Chaque fonction ouvre sa propre connexion et la referme
+dans un `finally` (pas de connexion partagée, pas de pool).
+
+Schéma (créé par `creer_base()`) :
+
+- ``articles_raw`` — articles collectés, leur score de pertinence, leur résumé,
+  et l'état de sélection éditoriale (`selectionne`, `score_editorial`).
+- ``newsletters`` — éditions rédigées, avec un `statut` régi par une machine à
+  états (voir ``TRANSITIONS_AUTORISEES``).
+- ``newsletters_historique`` — trace horodatée de chaque changement de statut.
+- ``newsletters_publications`` — résultat de publication par canal (upsert sur
+  ``(newsletter_id, canal)``).
+- ``abonnes_email`` — liste d'abonnés (canal email, encore inactif).
+
+Le chemin du fichier est ``DB_PATH`` ; les tests le redirigent vers une base
+temporaire via ``monkeypatch``.
+"""
+
 import sqlite3
 from datetime import datetime, timezone
 
 DB_PATH = "afrotech.db"
+# Score minimal (0-100) pour qu'un article soit résumé puis éligible à la newsletter.
 SEUIL_PERTINENCE = 40
 
+# Machine à états du statut d'une newsletter. Toute transition absente d'ici est refusée
+# par changer_statut_newsletter(). `rejeté` et `publié` sont des états terminaux.
 TRANSITIONS_AUTORISEES = {
     "brouillon": {"en_revue"},
     "en_revue": {"validé", "rejeté"},
@@ -20,6 +44,10 @@ STATUTS_PUBLICATION_CANAL = {"en_attente", "publié", "echec"}
 
 
 def creer_base():
+    """Crée les tables si elles n'existent pas et applique les migrations de colonnes.
+
+    Idempotent : appelée au démarrage de chaque point d'entrée du pipeline.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute("""
@@ -99,6 +127,7 @@ def creer_base():
 
 
 def sauvegarder_article(titre, url, source_id, date_pub, contenu, score_pertinence):
+    """Insère un article collecté. `INSERT OR IGNORE` : un doublon d'`url` est sans effet."""
     date_collecte = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -116,6 +145,7 @@ def sauvegarder_article(titre, url, source_id, date_pub, contenu, score_pertinen
 
 
 def sauvegarder_resume(url, resume):
+    """Attache le résumé LLM à l'article identifié par `url`."""
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
@@ -128,6 +158,7 @@ def sauvegarder_resume(url, resume):
 
 
 def sauvegarder_newsletter(contenu, nb_articles, statut="brouillon"):
+    """Insère une newsletter (statut `brouillon` par défaut) et retourne son id."""
     date_generation = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -145,6 +176,12 @@ def sauvegarder_newsletter(contenu, nb_articles, statut="brouillon"):
 
 
 def changer_statut_newsletter(newsletter_id, nouveau_statut, auteur):
+    """Applique une transition de statut et l'historise.
+
+    Lève ``ValueError`` si la newsletter est introuvable ou si la transition
+    n'est pas autorisée par ``TRANSITIONS_AUTORISEES``. Le changement de statut
+    et l'écriture dans ``newsletters_historique`` sont commités ensemble.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         row = conn.execute(
@@ -178,6 +215,7 @@ def changer_statut_newsletter(newsletter_id, nouveau_statut, auteur):
 
 
 def modifier_contenu_newsletter(newsletter_id, nouveau_contenu):
+    """Remplace le corps d'une newsletter (édition manuelle en validation). Ne touche pas au statut."""
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
@@ -190,6 +228,10 @@ def modifier_contenu_newsletter(newsletter_id, nouveau_contenu):
 
 
 def derniere_newsletter_brouillon():
+    """Newsletter `brouillon` la plus récente, ou ``None``.
+
+    Renvoie un tuple ``(id, contenu, nb_articles, statut, date_generation)``.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -206,6 +248,10 @@ def derniere_newsletter_brouillon():
 
 
 def derniere_newsletter_validee():
+    """Newsletter `validé` la plus récente, ou ``None``. Lue par la publication du lundi.
+
+    Renvoie un tuple ``(id, contenu, nb_articles, statut, date_generation)``.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -222,6 +268,7 @@ def derniere_newsletter_validee():
 
 
 def newsletter_par_id(newsletter_id):
+    """Newsletter par son id, quel que soit son statut (tuple à 5 champs), ou ``None``."""
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -237,6 +284,7 @@ def newsletter_par_id(newsletter_id):
 
 
 def lister_editions_publiees():
+    """Toutes les newsletters `publié`, de la plus récente à la plus ancienne. Sert à l'archive."""
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -252,6 +300,11 @@ def lister_editions_publiees():
 
 
 def enregistrer_publication_canal(newsletter_id, canal, statut, tentatives, erreur=None):
+    """Enregistre (upsert sur ``(newsletter_id, canal)``) le résultat d'un envoi.
+
+    Rejouer un canal en échec met à jour sa ligne, n'en crée pas de nouvelle.
+    `statut` ∈ ``STATUTS_PUBLICATION_CANAL`` sinon ``ValueError``.
+    """
     if statut not in STATUTS_PUBLICATION_CANAL:
         raise ValueError(f"Statut de publication inconnu : {statut!r}")
 
@@ -277,6 +330,7 @@ def enregistrer_publication_canal(newsletter_id, canal, statut, tentatives, erre
 
 
 def statuts_publication(newsletter_id):
+    """Lignes ``(canal, statut, tentatives, erreur, horodatage)`` pour une newsletter, triées par canal."""
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -293,6 +347,7 @@ def statuts_publication(newsletter_id):
 
 
 def tous_canaux_publies(newsletter_id, canaux=CANAUX_PUBLICATION):
+    """``True`` si chaque canal de `canaux` a le statut `publié`. Garde-fou avant `validé → publié`."""
     conn = sqlite3.connect(DB_PATH)
     try:
         rows = conn.execute(
@@ -306,6 +361,7 @@ def tous_canaux_publies(newsletter_id, canaux=CANAUX_PUBLICATION):
 
 
 def ajouter_abonne_email(email):
+    """Ajoute un abonné (statut `actif`). `INSERT OR IGNORE` : un email déjà présent est sans effet."""
     date_inscription = datetime.now(timezone.utc).isoformat()
     conn = sqlite3.connect(DB_PATH)
     try:
@@ -322,6 +378,7 @@ def ajouter_abonne_email(email):
 
 
 def lister_abonnes_actifs():
+    """Liste des emails `actif`, par ordre d'inscription."""
     conn = sqlite3.connect(DB_PATH)
     try:
         return [
@@ -334,6 +391,7 @@ def lister_abonnes_actifs():
 
 
 def desabonner_email(email):
+    """Passe l'abonné au statut `inactif` (pas de suppression de ligne)."""
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute("UPDATE abonnes_email SET statut = 'inactif' WHERE email = ?", (email,))
@@ -343,6 +401,7 @@ def desabonner_email(email):
 
 
 def historique_newsletter(newsletter_id):
+    """Transitions de statut d'une newsletter : ``(ancien, nouveau, auteur, horodatage)``, dans l'ordre."""
     conn = sqlite3.connect(DB_PATH)
     try:
         return conn.execute(
@@ -359,6 +418,10 @@ def historique_newsletter(newsletter_id):
 
 
 def articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=None):
+    """Articles au-dessus de `seuil` et pas encore résumés : ``(url, titre, contenu)``.
+
+    `limit` borne le nombre de lignes (``None`` = tout).
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         requete = """
@@ -376,6 +439,10 @@ def articles_a_resumer(seuil=SEUIL_PERTINENCE, limit=None):
 
 
 def articles_selectionnables(seuil=SEUIL_PERTINENCE, limit=None):
+    """Candidats à la newsletter : au-dessus de `seuil`, résumés, pas encore sélectionnés.
+
+    Renvoie ``(url, titre, contenu, source_id, date_pub, score_pertinence, resume)``.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         requete = """
@@ -393,6 +460,10 @@ def articles_selectionnables(seuil=SEUIL_PERTINENCE, limit=None):
 
 
 def marquer_selectionne(url, score_editorial):
+    """Marque un article comme retenu pour la newsletter et enregistre son score éditorial.
+
+    L'article ne réapparaîtra plus dans ``articles_selectionnables()``.
+    """
     conn = sqlite3.connect(DB_PATH)
     try:
         conn.execute(
@@ -405,6 +476,7 @@ def marquer_selectionne(url, score_editorial):
 
 
 def article_existe(url):
+    """``True`` si un article a déjà cette `url`. Utilisé par l'orchestrateur pour éviter les doublons."""
     conn = sqlite3.connect(DB_PATH)
     try:
         row = conn.execute(

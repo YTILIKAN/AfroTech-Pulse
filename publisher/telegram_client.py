@@ -1,4 +1,17 @@
-# publisher/telegram_client.py — Client Telegram Bot API, publication sur le canal Y'TILIKAN
+"""Client Telegram Bot API — publication de la newsletter sur le canal Y'TILIKAN.
+
+`envoyer_telegram(contenu)` est le point d'entrée : il convertit le Markdown de la
+newsletter en HTML supporté par Telegram, découpe le message si besoin sous la
+limite des 4096 caractères (sans jamais couper au milieu d'une balise), et envoie
+chaque morceau avec 3 tentatives et backoff exponentiel sur les 429/5xx/timeouts.
+
+Un **seul** client HTTP est ouvert par appel et fermé explicitement (`with`) —
+correctif S14 d'une fuite d'une connexion par retry. Retourne ``True`` seulement
+si tous les morceaux sont passés.
+
+Distinct de `notifier.py`, qui écrit à l'équipe sur le groupe privé.
+Config : ``TELEGRAM_BOT_TOKEN``, ``TELEGRAM_CHANNEL_ID``.
+"""
 
 import os
 import re
@@ -131,6 +144,10 @@ def _envoyer_message(client, channel_id, texte_html):
 
 
 def envoyer_telegram(contenu: str) -> bool:
+    """Publie `contenu` sur le canal Telegram. ``True`` si tout est passé, ``False`` sinon.
+
+    Lève ``RuntimeError`` si ``TELEGRAM_CHANNEL_ID`` est absent.
+    """
     channel_id = os.getenv("TELEGRAM_CHANNEL_ID")
     if not channel_id:
         raise RuntimeError(

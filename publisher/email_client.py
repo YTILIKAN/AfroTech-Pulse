@@ -1,4 +1,13 @@
-# publisher/email_client.py — Client Resend, envoi de la newsletter par email aux abonnés actifs
+"""Client Resend — envoi de la newsletter par email aux abonnés actifs.
+
+Canal **en évolution, désactivé** : `email` n'est pas dans
+``database.CANAUX_PUBLICATION`` tant que le domaine d'envoi n'est pas vérifié
+sur Resend. Le code est fonctionnel et testé.
+
+`envoyer_email(contenu)` met tous les abonnés actifs en `bcc` (ils ne se voient
+pas entre eux), avec 3 tentatives et backoff sur les 429/5xx/timeouts.
+Config : ``RESEND_API_KEY``, ``RESEND_FROM_EMAIL``.
+"""
 
 import os
 import time
@@ -30,6 +39,11 @@ def get_client():
 
 
 def envoyer_email(contenu: str) -> bool:
+    """Envoie `contenu` par email à tous les abonnés actifs. ``True`` si l'API a accepté l'envoi.
+
+    Lève ``RuntimeError`` si ``RESEND_FROM_EMAIL`` est absent ou s'il n'y a aucun
+    abonné actif.
+    """
     expediteur = os.getenv("RESEND_FROM_EMAIL")
     if not expediteur:
         raise RuntimeError(

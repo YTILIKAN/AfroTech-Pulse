@@ -1,4 +1,15 @@
-# newsletter/writer.py — Agent rédacteur : génère la newsletter complète (charte Y'TILIKAN)
+"""Agent rédacteur : génère la newsletter complète selon la charte Y'TILIKAN.
+
+`generer_newsletter(articles)` appelle Gemini avec ``SYSTEM_PROMPT`` (structure
+imposée : ``## Édito`` / ``## Cette semaine`` avec un bloc ``### N. titre`` par
+article / ``## Conclusion``). Même résilience que `pipeline.summarize` : 3
+tentatives, backoff, ``None`` en cas d'échec.
+
+`structure_respectee()` vérifie a posteriori que le Markdown produit a les 3
+sections et le bon nombre de blocs article — un écart est signalé, pas bloquant
+(la newsletter part quand même en `brouillon` pour relecture humaine).
+Config : ``GEMINI_API_KEY``.
+"""
 
 import os
 import re
@@ -99,6 +110,11 @@ def structure_respectee(newsletter: str, nb_articles_attendu: int) -> bool:
 
 
 def generer_newsletter(articles: list[dict]) -> str | None:
+    """Rédige la newsletter Markdown à partir de la sélection d'articles, ou ``None`` en cas d'échec.
+
+    Chaque `article` porte au moins ``titre``/``title``, ``url`` et
+    ``resume``/``contenu``.
+    """
     if not articles:
         print("  [IGNORÉ] aucun article fourni, pas de newsletter à générer.")
         return None

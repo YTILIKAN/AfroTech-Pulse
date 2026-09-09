@@ -11,6 +11,10 @@ __pycache__/
 dist/
 build/
 .eggs/
+.pytest_cache/
+
+# Outils locaux
+.claude/
 
 # Base de données locale
 *.sqlite
