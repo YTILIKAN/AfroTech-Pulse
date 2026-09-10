@@ -1,4 +1,17 @@
-# publisher/telegram_client.py — Client Telegram Bot API, publication sur le canal Y'TILIKAN
+"""Client Telegram Bot API — publication de la newsletter sur le canal Y'TILIKAN.
+
+`envoyer_telegram(contenu)` est le point d'entrée : il convertit le Markdown de la
+newsletter en HTML supporté par Telegram, découpe le message si besoin sous la
+limite des 4096 caractères (sans jamais couper au milieu d'une balise), et envoie
+chaque morceau avec 3 tentatives et backoff exponentiel sur les 429/5xx/timeouts.
+
+Un **seul** client HTTP est ouvert par appel et fermé explicitement (`with`) —
+correctif S14 d'une fuite d'une connexion par retry. Retourne ``True`` seulement
+si tous les morceaux sont passés.
+
+Distinct de `notifier.py`, qui écrit à l'équipe sur le groupe privé.
+Config : ``TELEGRAM_BOT_TOKEN``, ``TELEGRAM_CHANNEL_ID``.
+"""
 
 import os
 import re
@@ -102,12 +115,12 @@ def _decouper_message(contenu, limite=LIMITE_CARACTERES_TELEGRAM):
     return morceaux
 
 
-def _envoyer_message(channel_id, texte_html):
+def _envoyer_message(client, channel_id, texte_html):
     payload = {"chat_id": channel_id, "text": texte_html, "parse_mode": "HTML"}
 
     for tentative in range(1, MAX_TENTATIVES + 1):
         try:
-            response = get_client().post("/sendMessage", json=payload)
+            response = client.post("/sendMessage", json=payload)
             if response.status_code == 200:
                 return True
             if response.status_code == 429 or response.status_code >= 500:
@@ -131,6 +144,10 @@ def _envoyer_message(channel_id, texte_html):
 
 
 def envoyer_telegram(contenu: str) -> bool:
+    """Publie `contenu` sur le canal Telegram. ``True`` si tout est passé, ``False`` sinon.
+
+    Lève ``RuntimeError`` si ``TELEGRAM_CHANNEL_ID`` est absent.
+    """
     channel_id = os.getenv("TELEGRAM_CHANNEL_ID")
     if not channel_id:
         raise RuntimeError(
@@ -139,7 +156,11 @@ def envoyer_telegram(contenu: str) -> bool:
         )
 
     contenu_html = _mettre_en_forme_telegram(contenu)
-    for morceau in _decouper_message(contenu_html):
-        if not _envoyer_message(channel_id, morceau):
-            return False
+    # Un seul client pour tous les morceaux/tentatives de cet envoi, fermé explicitement à
+    # la fin : get_client() en créait un nouveau (jamais fermé) à chaque tentative, ce qui
+    # fuyait une connexion HTTP par retry sur les envois en échec transitoire (charge S14).
+    with get_client() as client:
+        for morceau in _decouper_message(contenu_html):
+            if not _envoyer_message(client, channel_id, morceau):
+                return False
     return True

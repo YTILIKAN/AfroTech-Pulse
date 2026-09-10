@@ -18,11 +18,18 @@ Built to inform, designed to last, published every week without exception.
 - [Livrables](#livrables)
 - [Architecture du pipeline](#architecture-du-pipeline)
 - [Cycle horaire complet](#cycle-horaire-complet)
+- [Stabilité et limites connues](#stabilité-et-limites-connues)
 - [Structure du projet](#structure-du-projet)
 - [Stack technique](#stack-technique)
+- [Prérequis](#prérequis)
 - [Installation](#installation)
 - [Variables d'environnement](#variables-denvironnement)
+- [Lancer chaque composant](#lancer-chaque-composant)
+- [Tests](#tests)
 - [Sources surveillées](#sources-surveillées)
+- [Documentation technique](#documentation-technique)
+- [Contribuer](#contribuer)
+- [Licence](#licence)
 
 ---
 
@@ -50,9 +57,10 @@ Publiée chaque lundi sur le Channel Telegram Y'TILIKAN. Entièrement générée
 ### 2. Dashboard public interactif
 Visualisation des tendances IA en Afrique (`streamlit run dashboard/app.py`), sur les
 4 dernières semaines :
-- **V1 (livré)** : carte choroplèthe des pays mentionnés, répartition par secteur
+- **V1** : carte choroplèthe des pays mentionnés, répartition par secteur
   (fintech, santé, éducation, agriculture), volume hebdomadaire d'articles
-- **V2 (à venir, S11)** : top acteurs mentionnés, nuage de mots, comparaison pays, filtres
+- **V2** : top acteurs mentionnés, nuage de mots, comparaison pays, filtres interactifs
+  (`dashboard/entities.py`, `dashboard/filters.py`, `dashboard/text.py`)
 
 Détails de conception : [`docs/s10_dashboard.md`](docs/s10_dashboard.md).
 
@@ -140,6 +148,52 @@ Intervention humaine : **~15 min le lundi** (relecture + clic Valider + `git pus
 
 ---
 
+## Stabilité et limites connues
+
+`tests/test_pipeline_stability.py` rejoue 4 cycles hebdomadaires consécutifs sur la même
+base (scrape → résumé → sélection/rédaction → validation → publication), en injectant à
+chaque semaine une panne réellement rencontrée en production : source RSS qui timeout,
+coupure réseau, erreur inattendue du scraper, rate limit/timeout Gemini, échec Telegram
+transitoire puis prolongé. `tests/test_scraper_stability.py` couvre isolément la
+résilience de `scrape_rss()` à chacune de ces pannes réseau.
+
+**Ce que ces tests garantissent :**
+- une source, un résumé ou une publication en échec n'interrompt jamais le reste du
+  pipeline (chaque étage isole ses erreurs et continue) ;
+- toute erreur rencontrée est loguée (`[TIMEOUT]`, `[ERREUR RÉSEAU]`, `[RATE LIMIT/SERVEUR …]`,
+  `[ÉCHEC] …`) — aucune ne passe silencieusement ;
+- aucune fuite de ressources sur la durée : connexions SQLite toutes refermées, un seul
+  client HTTP Telegram ouvert (et refermé) par tentative de publication.
+
+**Correctif issu de ce travail de stabilisation :** `publisher/telegram_client.py` ouvrait
+un nouveau client HTTP à chaque tentative d'envoi (y compris chaque retry) sans jamais le
+fermer — une fuite de connexion par retry sur les publications en échec transitoire. Un
+seul client est maintenant ouvert par appel à `envoyer_telegram()`, réutilisé pour tous les
+morceaux/tentatives, et explicitement refermé à la fin (cf. `tests/test_telegram_client.py::test_un_seul_client_ouvert_puis_ferme_meme_avec_retries`).
+
+**Limites connues (non résolues, par conception ou par contrainte de ressources) :**
+- **Dédup intra-batch uniquement** — `orchestrator.py` déduplique les articles collectés le
+  même jour entre eux, mais ne compare jamais un nouvel article contre ceux déjà en base :
+  un même article republié par une source des semaines plus tard peut réapparaître sous une
+  URL différente.
+- **Quotas gratuits externes** — Gemini (résumé + rédaction) et l'API Bot Telegram tournent
+  sur des paliers gratuits avec un rate limit par minute non documenté publiquement de façon
+  stable ; le pipeline absorbe les 429/5xx transitoires via 3 tentatives et un backoff
+  exponentiel (2s/4s/8s) par appel, mais une panne qui dépasse cette fenêtre fait échouer
+  l'article ou la publication du jour (pas de file d'attente ni de retry inter-jours).
+- **Panne prolongée (> quelques minutes)** — un service externe indisponible plus longtemps
+  que les 3 tentatives ne bloque jamais le run (celui-ci se termine et alerte l'équipe via
+  `notifier.py`), mais rien ne retente automatiquement le lendemain : l'article reste sans
+  résumé, ou la newsletter validée reste au statut `validé` jusqu'à une republication
+  manuelle (`streamlit run validation/review_ui.py`).
+- **Pas de circuit breaker inter-runs** — chaque exécution de `daily_scrape.yml` retente
+  toutes les sources actives depuis zéro, y compris celles en échec depuis plusieurs jours ;
+  c'est simple et sans état à maintenir, mais ça veut dire qu'une source durablement morte
+  continue de consommer un appel réseau (10s de timeout) à chaque run tant qu'elle n'est pas
+  désactivée manuellement dans `data/sources.json`.
+
+---
+
 ## Structure du projet
 
 ```
@@ -214,26 +268,42 @@ AfroTech-Pulse/
 
 ---
 
+## Prérequis
+
+- **Python 3.11** (version utilisée par les workflows GitHub Actions ; 3.10+ devrait fonctionner)
+- **git**
+- Un compte **Google AI Studio** (clé Gemini gratuite) et un **bot Telegram** — voir
+  [Variables d'environnement](#variables-denvironnement)
+
+La première installation télécharge `sentence-transformers` et ses dépendances
+(PyTorch, ~2 Go) : prévoir de la bande passante et quelques minutes.
+
+---
+
 ## Installation
 
 ```bash
-# 1. Cloner le repo
+# 1. Cloner le dépôt
 git clone <url-repo>
 cd AfroTech-Pulse
 
-# 2. Installer les dépendances
+# 2. Créer et activer un environnement virtuel
+python -m venv .venv
+source .venv/bin/activate          # Windows : .venv\Scripts\activate
+
+# 3. Installer les dépendances
 pip install -r requirements.txt
 
-# 3. Configurer les variables d'environnement
-cp .env.example .env
-# Ouvrir .env et remplir les clés API
+# 4. Configurer les variables d'environnement
+cp .env.example .env               # Windows : copy .env.example .env
+# Ouvrir .env et renseigner chaque clé (voir le tableau ci-dessous)
 
-# 4. Lancer le scraper manuellement
-python scraper/main.py
-
-# 5. Lancer le dashboard
-streamlit run dashboard/app.py
+# 5. Vérifier l'installation
+python orchestrator.py             # une passe de collecte réelle
+streamlit run dashboard/app.py     # le dashboard s'ouvre sur http://localhost:8501
 ```
+
+La base `afrotech.db` (SQLite) est créée automatiquement au premier lancement.
 
 ---
 
@@ -247,10 +317,48 @@ Copier `.env.example` en `.env` et remplir chaque valeur.
 | `TELEGRAM_BOT_TOKEN` | Token du bot Telegram qui publie sur le canal | @BotFather sur Telegram |
 | `TELEGRAM_CHANNEL_ID` | Identifiant du canal Telegram **public** où est publiée la newsletter (ex. `@ytilikan`) | Nom d'utilisateur choisi à la création du canal |
 | `TELEGRAM_ADMIN_CHAT_ID` | Identifiant du groupe **privé** de l'équipe (rappels de validation, alertes d'échec) — jamais visible des abonnés | Ajouter le bot au groupe, puis lire `chat.id` via `getUpdates` |
-| `TWITTER_BEARER_TOKEN` | Token Twitter API v2 (lecture seule) | developer.twitter.com |
 | `RESEND_API_KEY` | Clé Resend pour les emails *(en évolution, pas encore actif)* | resend.com |
 | `RESEND_FROM_EMAIL` | Adresse d'expédition *(en évolution, domaine à vérifier)* | Domaine vérifié dans Resend |
 
+En production, ces valeurs sont stockées dans les *Secrets* du dépôt GitHub
+(*Settings → Secrets and variables → Actions*), jamais dans un fichier commité.
+
+---
+
+## Lancer chaque composant
+
+Chaque étape du pipeline peut être lancée à la main, dans cet ordre. En production,
+ce sont les [workflows GitHub Actions](#cycle-horaire-complet) qui les enchaînent.
+
+| Étape | Commande | Rôle |
+|---|---|---|
+| Collecte | `python orchestrator.py` | Scrape les sources, filtre la pertinence, déduplique, stocke |
+| Résumé | `python -m pipeline.run_summarize` | Résume via Gemini les articles pertinents pas encore résumés |
+| Sélection + rédaction | `python -m newsletter.run_writer` | Sélectionne les 5-7 meilleurs articles et rédige la newsletter → `brouillon` |
+| Sélection seule | `python -m pipeline.run_editor` | Marque la sélection éditoriale sans rédiger (optionnel) |
+| Validation humaine | `streamlit run validation/review_ui.py` | Relire / valider / modifier / rejeter la newsletter en brouillon |
+| Rappel équipe | `python -m notifier` | Alerte Telegram s'il reste un brouillon à valider |
+| Publication | `python -m publisher.run_publish` | Publie la newsletter `validé` sur le canal Telegram |
+| Dashboard | `streamlit run dashboard/app.py` | Visualisations publiques des tendances |
+| Archive | `streamlit run archive/app.py` | Recherche full-text dans les éditions passées |
+
+> **Note** : `run_summarize`, `run_writer` et `run_editor` acceptent des options
+> (`--limit`, `--seuil`) — voir `python -m pipeline.run_summarize --help`.
+
+---
+
+## Tests
+
+```bash
+pip install pytest
+pytest -q                                   # toute la suite
+pytest tests/test_pipeline_stability.py -v   # les tests de résilience réseau (S14)
+```
+
+Les tests n'appellent aucun service externe (Gemini, Telegram sont simulés) et
+utilisent une base SQLite temporaire — ils ne touchent pas `afrotech.db`.
+Voir [Stabilité et limites connues](#stabilité-et-limites-connues) pour ce que
+couvrent les tests de stabilité.
 
 ---
 
@@ -271,4 +379,31 @@ Copier `.env.example` en `.env` et remplir chaque valeur.
 
 ---
 
-*Projet réalisé par l'Équipe Gamma — juin → septembre 2025*
+## Documentation technique
+
+| Document | Contenu |
+|---|---|
+| [`docs/api.md`](docs/api.md) | Référence des fonctions internes (`database.py`, `pipeline/*`, `newsletter/*`, `publisher/*`) : signatures, formats de retour, comportement d'erreur |
+| [`docs/audit_securite.md`](docs/audit_securite.md) | État de sécurité du dépôt avant passage en open source |
+| [`docs/format_newsletter.md`](docs/format_newsletter.md) | Format Markdown attendu pour une édition |
+| [`docs/s10_dashboard.md`](docs/s10_dashboard.md) | Conception du dashboard |
+
+---
+
+## Contribuer
+
+Les contributions sont bienvenues. Le dépôt suit un workflow git-flow (branches
+`feature/*` → PR vers `develop`, jamais de push direct sur `develop` ni `main`).
+
+Avant d'ouvrir une pull request, lire **[CONTRIBUTING.md](CONTRIBUTING.md)** :
+prérequis, convention de commits, procédure de PR et lancement des tests.
+
+---
+
+## Licence
+
+Voir le fichier [LICENSE](LICENSE).
+
+---
+
+*Projet réalisé par l'Équipe Gamma — mai → septembre 2026*

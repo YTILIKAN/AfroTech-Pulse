@@ -26,6 +26,31 @@ def par_secteur(articles_enrichis):
     return dict(compte)
 
 
+def comparer_pays(articles_enrichis, codes_iso):
+    """{iso: {"nom", "articles", "secteurs"}} pour les pays demandés.
+
+    Les pays sans aucun article sur la période sont retournés à zéro plutôt qu'omis :
+    dans une vue comparative, « le Ghana n'a rien publié » est une information, pas un
+    trou dans le graphique.
+    """
+    resultat = {
+        iso: {"nom": iso, "articles": 0, "secteurs": {}} for iso in codes_iso
+    }
+
+    for article in articles_enrichis:
+        iso = article.get("pays_iso")
+        if iso not in resultat:
+            continue
+        entree = resultat[iso]
+        entree["articles"] += 1
+        if article.get("pays_nom"):
+            entree["nom"] = article["pays_nom"]
+        for secteur in article.get("secteurs") or []:
+            entree["secteurs"][secteur] = entree["secteurs"].get(secteur, 0) + 1
+
+    return resultat
+
+
 def par_semaine(articles, n_semaines=4, maintenant=None):
     """Liste de (lundi ISO 'YYYY-MM-DD', nombre d'articles) sur les n dernières semaines.
     Toujours n entrées, y compris les semaines à 0 (sinon la timeline a des trous)."""

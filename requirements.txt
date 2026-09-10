@@ -6,5 +6,6 @@ httpx
 streamlit
 plotly
 pandas
+wordcloud
 python-dotenv
 whoosh

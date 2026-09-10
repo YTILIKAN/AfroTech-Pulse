@@ -1,4 +1,11 @@
-# pipeline/filter.py — Filtrage de pertinence africaine
+"""Filtrage de pertinence africaine.
+
+`score_article()` attribue à chaque article collecté un score 0-100 par simple
+recherche de mots-clés (pays, villes, organisations, termes tech, sources
+africaines). Aucun appel réseau ni LLM : c'est un filtre rapide et déterministe
+appliqué à tous les articles avant l'étape de résumé. Le seuil de conservation
+est ``database.SEUIL_PERTINENCE``.
+"""
 
 PAYS_AFRICAINS = [
     "nigeria", "kenya", "ghana", "sénégal", "senegal", "cameroun", "cameroon",
@@ -61,6 +68,12 @@ def detecter_pays(titre: str, contenu: str) -> str | None:
 
 
 def score_article(titre: str, contenu: str, source_id: str) -> int:
+    """Score de pertinence africaine, 0 à 100.
+
+    Cumule : pays détecté (+20), ville (+15), organisation (+15), terme tech
+    africain (+10), source africaine connue (+10) — chaque catégorie comptée
+    une seule fois. Plafonné à 100.
+    """
     texte = (titre + " " + contenu).lower()
     score = 0
 

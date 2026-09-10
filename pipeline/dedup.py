@@ -1,4 +1,15 @@
-# pipeline/dedup.py — Déduplication par hashing MD5 + similarité cosinus
+"""Déduplication d'un lot d'articles.
+
+Deux passes : (1) doublon exact par hash MD5 du titre normalisé ; (2) quasi-doublon
+par similarité cosinus des embeddings (`sentence-transformers`, modèle
+multilingue) au-dessus de ``SEUIL_QUASI_DOUBLON``.
+
+Le modèle d'embeddings est chargé paresseusement (premier appel seulement) et les
+embeddings sont mis en cache sur chaque dict article pour la durée du lot.
+
+Limite connue : la déduplication est **intra-lot** — `orchestrator.py` ne compare
+pas un nouvel article à ceux déjà en base (voir README, « Limites connues »).
+"""
 
 import hashlib
 import re
@@ -21,6 +32,10 @@ def _get_model():
 
 
 def hash_article(titre: str, url: str) -> str:
+    """Hash MD5 du titre normalisé (minuscules, sans ponctuation, espaces réduits).
+
+    `url` est ignorée : deux URL différentes avec le même titre sont un doublon.
+    """
     titre_normalise = titre.lower().strip()
     titre_normalise = titre_normalise.translate(str.maketrans("", "", PONCTUATION))
     titre_normalise = re.sub(r"\s+", " ", titre_normalise).strip()
@@ -54,6 +69,11 @@ def est_quasi_doublon(article: dict, articles_vus: list, seuil: float = SEUIL_QU
 
 
 def deduplicate(articles: list) -> list:
+    """Retourne la liste `articles` sans les doublons exacts ni les quasi-doublons.
+
+    Conserve le premier exemplaire rencontré. Attend des dicts avec les clés
+    ``title``, ``url``, ``content``. Affiche un récapitulatif sur stdout.
+    """
     hashes_vus = set()
     articles_vus = []
     resultat = []
