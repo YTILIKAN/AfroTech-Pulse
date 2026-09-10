@@ -1,0 +1,10 @@
+# Dépendances des interfaces web seules (dashboard, archive).
+# N'inclut PAS sentence-transformers / torch (~2 Go), utilisé uniquement par
+# la déduplication du pipeline. À utiliser comme install command des services
+# web sur l'hébergement :  pip install -r requirements-web.txt
+streamlit==1.63.0
+plotly==7.0.0
+pandas==3.0.5
+wordcloud==1.9.6
+whoosh==2.7.4
+python-dotenv==1.2.3

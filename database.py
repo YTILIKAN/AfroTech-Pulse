@@ -15,14 +15,17 @@ Schéma (créé par `creer_base()`) :
   ``(newsletter_id, canal)``).
 - ``abonnes_email`` — liste d'abonnés (canal email, encore inactif).
 
-Le chemin du fichier est ``DB_PATH`` ; les tests le redirigent vers une base
+Le chemin du fichier est ``DB_PATH`` : par défaut ``afrotech.db`` à la racine,
+surchargeable par la variable d'environnement ``DB_PATH`` (utile pour pointer
+vers un volume persistant en hébergement). Les tests le redirigent vers une base
 temporaire via ``monkeypatch``.
 """
 
+import os
 import sqlite3
 from datetime import datetime, timezone
 
-DB_PATH = "afrotech.db"
+DB_PATH = os.getenv("DB_PATH", "afrotech.db")
 # Score minimal (0-100) pour qu'un article soit résumé puis éligible à la newsletter.
 SEUIL_PERTINENCE = 40
 
