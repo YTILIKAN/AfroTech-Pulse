@@ -33,12 +33,18 @@ from dashboard.theme import ACCENT, ECHELLE_SEQ, ENCRE_DOUCE, PLOTLY_CONFIG, sty
 NB_ACTEURS = 12
 NB_PAYS_COMPARES = 3
 
-st.set_page_config(
-    page_title="AfroTech Pulse — Dashboard",
-    page_icon="📊",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
+# try/except : sans effet en lancement direct (`streamlit run dashboard/app.py`),
+# absorbé quand la page est montée dans l'app multipage streamlit_app.py où
+# st.set_page_config() a déjà été appelé.
+try:
+    st.set_page_config(
+        page_title="AfroTech Pulse — Dashboard",
+        page_icon="📊",
+        layout="wide",
+        initial_sidebar_state="expanded",
+    )
+except Exception:
+    pass
 
 st.markdown(
     """

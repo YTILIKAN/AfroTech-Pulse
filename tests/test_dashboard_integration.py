@@ -1,13 +1,12 @@
-import shutil
 from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
 
 import database
+from tests.prod_db import DB_PROD, copie_prod_rajeunie
 
 APP_PATH = str(Path(__file__).resolve().parent.parent / "dashboard" / "app.py")
-DB_PROD = Path(__file__).resolve().parent.parent / "afrotech.db"
 
 
 @pytest.fixture(autouse=True)
@@ -22,7 +21,7 @@ def test_page_se_charge_sur_une_copie_de_la_base_de_prod(monkeypatch, tmp_path):
     if not DB_PROD.exists():
         pytest.skip("afrotech.db absente")
     copie = tmp_path / "afrotech.db"
-    shutil.copy(DB_PROD, copie)
+    copie_prod_rajeunie(copie)
     monkeypatch.setattr(database, "DB_PATH", str(copie))
 
     at = AppTest.from_file(APP_PATH, default_timeout=60).run()

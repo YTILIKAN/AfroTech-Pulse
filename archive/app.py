@@ -10,7 +10,10 @@ import streamlit as st
 import database
 from archive.search import indexer_editions, rechercher
 
-st.set_page_config(page_title="AfroTech Pulse — Archive", page_icon="📚", layout="centered")
+try:  # absorbé quand la page est montée dans l'app multipage (voir dashboard/app.py)
+    st.set_page_config(page_title="AfroTech Pulse — Archive", page_icon="📚", layout="centered")
+except Exception:
+    pass
 
 database.creer_base()
 

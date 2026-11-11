@@ -25,7 +25,7 @@ import os
 import sqlite3
 from datetime import datetime, timezone
 
-DB_PATH = os.getenv("DB_PATH", "afrotech.db")
+DB_PATH = os.getenv("DB_PATH") or "afrotech.db"
 # Score minimal (0-100) pour qu'un article soit résumé puis éligible à la newsletter.
 SEUIL_PERTINENCE = 40
 
