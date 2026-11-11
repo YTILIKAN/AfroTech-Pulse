@@ -26,6 +26,7 @@ Built to inform, designed to last, published every week without exception.
 - [Variables d'environnement](#variables-denvironnement)
 - [Lancer chaque composant](#lancer-chaque-composant)
 - [Tests](#tests)
+- [Déploiement (Railway)](#déploiement-railway)
 - [Sources surveillées](#sources-surveillées)
 - [Documentation technique](#documentation-technique)
 - [Contribuer](#contribuer)
@@ -359,6 +360,41 @@ Les tests n'appellent aucun service externe (Gemini, Telegram sont simulés) et
 utilisent une base SQLite temporaire — ils ne touchent pas `afrotech.db`.
 Voir [Stabilité et limites connues](#stabilité-et-limites-connues) pour ce que
 couvrent les tests de stabilité.
+
+---
+
+## Déploiement (Railway)
+
+L'application se déploie en **un seul service** : `serve.py` démarre le planificateur
+(`scheduler.py`, APScheduler) puis l'app Streamlit multipage (`streamlit_app.py` :
+Dashboard, Archive, Validation). Le planificateur remplace les 4 workflows GitHub Actions,
+avec les mêmes horaires (UTC), et ajoute une sauvegarde quotidienne de la base
+(`<dossier base>/backups/`, 7 jours conservés). Le `Procfile` déclare `web: python serve.py`.
+
+**Mise en place**
+
+1. Créer le projet Railway et lier le dépôt GitHub (branche `main`).
+2. Ajouter un **Volume** et le monter, par exemple sur `/data`.
+3. Définir les variables du service :
+
+   | Variable | Valeur |
+   |---|---|
+   | `DB_PATH` | `/data/afrotech.db` (chemin sur le volume) |
+   | `VALIDATION_PASSWORD` | mot de passe de la page Validation (**obligatoire** en ligne : elle modifie la base) |
+   | `GEMINI_API_KEY`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHANNEL_ID`, `TELEGRAM_ADMIN_CHAT_ID` | voir [Variables d'environnement](#variables-denvironnement) |
+
+4. Déployer. Dans les logs, vérifier les lignes `Job planifié : …` (5 jobs) puis `Uvicorn server started`.
+
+**Points d'attention**
+
+- Au premier démarrage la base est créée vide : le dashboard se remplit après le premier
+  scrape (06:00 UTC) ; pour lancer un cycle tout de suite, exécuter `python orchestrator.py`
+  puis `python -m pipeline.run_summarize` depuis un shell Railway.
+- **Désactiver les 4 workflows GitHub Actions** une fois Railway validé, sinon le pipeline
+  s'exécute en double (scrape et publication).
+- Un seul réplica doit porter le planificateur ; pour un réplica supplémentaire,
+  définir `DISABLE_SCHEDULER=1`.
+- Hors Railway, `python serve.py` reproduit la production en local (`PORT` configurable).
 
 ---
 

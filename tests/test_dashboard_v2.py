@@ -1,5 +1,4 @@
 import json
-import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -15,9 +14,9 @@ from dashboard.entities import (
 )
 from dashboard.filters import bornes_periode, filtrer, options_pays, options_secteurs
 from dashboard.text import compter_mots, nettoyer, tokeniser
+from tests.prod_db import DB_PROD, copie_prod_rajeunie
 
 APP_PATH = str(Path(__file__).resolve().parent.parent / "dashboard" / "app.py")
-DB_PROD = Path(__file__).resolve().parent.parent / "afrotech.db"
 
 
 def _article(titre, iso=None, nom=None, secteurs=("généraliste",), jour=1, **extra):
@@ -318,7 +317,7 @@ def _app_sur_copie_prod(monkeypatch, tmp_path):
     if not DB_PROD.exists():
         pytest.skip("afrotech.db absente")
     copie = tmp_path / "afrotech.db"
-    shutil.copy(DB_PROD, copie)
+    copie_prod_rajeunie(copie)
     monkeypatch.setattr(database, "DB_PATH", str(copie))
     return AppTest.from_file(APP_PATH, default_timeout=120).run()
 

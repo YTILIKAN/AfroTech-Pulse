@@ -1,5 +1,6 @@
 # validation/review_ui.py — Interface Streamlit de validation humaine (15 min, lundi matin)
 
+import os
 import sys
 from pathlib import Path
 
@@ -77,7 +78,32 @@ def _afficher_panneau_publication(newsletter):
             )
 
 
-st.set_page_config(page_title="AfroTech Pulse — Validation", page_icon="📰")
+try:  # absorbé quand la page est montée dans l'app multipage (voir dashboard/app.py)
+    st.set_page_config(page_title="AfroTech Pulse — Validation", page_icon="📰")
+except Exception:
+    pass
+
+
+def _verifier_acces():
+    """Protège la page par mot de passe en hébergement (variable VALIDATION_PASSWORD).
+
+    Sans la variable (usage local), aucun contrôle. La page Validation modifie
+    la base — elle ne doit pas être accessible publiquement quand l'app est en ligne.
+    """
+    mdp_attendu = os.getenv("VALIDATION_PASSWORD")
+    if not mdp_attendu or st.session_state.get("_acces_validation_ok"):
+        return
+    st.title("📰 Validation — accès réservé")
+    saisie = st.text_input("Mot de passe", type="password")
+    if saisie == mdp_attendu:
+        st.session_state["_acces_validation_ok"] = True
+        st.rerun()
+    if saisie:
+        st.error("Mot de passe incorrect.")
+    st.stop()
+
+
+_verifier_acces()
 
 database.creer_base()
 
